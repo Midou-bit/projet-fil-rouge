@@ -1,0 +1,11 @@
+# Configuration de build Netlify pour le front FrameForge.
+# Netlify lit ce fichier automatiquement : aucun réglage à saisir dans l'interface.
+# (Les règles de redirection restent dans client/public/_redirects.)
+
+[build]
+  base = "client"          # le front vit dans client/
+  command = "npm run build"
+  publish = "dist"         # relatif à `base` → client/dist
+
+[build.environment]
+  NODE_VERSION = "20"
