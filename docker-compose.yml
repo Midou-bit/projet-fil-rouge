@@ -1,0 +1,24 @@
+# Lancement « type production » en local : API .NET + front nginx (qui proxie /api).
+# Usage : docker compose up --build  →  http://localhost:8080
+services:
+  api:
+    build: ./api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      # Jwt__Key: "<clé ≥ 32 caractères>"          # OBLIGATOIRE en Production
+      # Stripe__SecretKey: "sk_test_..."            # optionnel (sinon paiement simulé)
+    volumes:
+      - api-data:/app                               # persiste la base SQLite entre redéploiements
+    expose:
+      - "8080"
+
+  web:
+    build: ./client
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  api-data:

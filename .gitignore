@@ -1,0 +1,30 @@
+# Node
+node_modules/
+client/node_modules/
+client/dist/
+dist/
+
+# .NET
+bin/
+obj/
+*.user
+
+# Python (script utilitaire tools/)
+__pycache__/
+*.pyc
+
+# SQLite (base régénérée par seed au démarrage)
+*.db
+*.db-shm
+*.db-wal
+
+# Secrets / env
+.env
+.env.local
+api/appsettings.Development.json
+
+# OS / IDE
+.vscode/
+.idea/
+.DS_Store
+TestResults/

@@ -1,0 +1,12 @@
+# Règles de routage Netlify (le premier motif qui correspond gagne — l'ordre compte).
+#
+# 1) Proxy des appels API vers le back-end Render.
+#    Le code 200 = réécriture côté serveur (pas une redirection 3xx) : le navigateur croit parler
+#    à la même origine, donc le CORS de l'API (verrouillé sur localhost:5173) n'est pas sollicité.
+#
+#    ⚠️ REMPLACER l'hôte ci-dessous par l'URL réelle du service Render, puis redéployer le front.
+/api/*  https://frameforge-api.onrender.com/api/:splat  200
+
+# 2) SPA React Router : toute autre route est servie par index.html
+#    (sans ça, un rafraîchissement direct sur /boutique renvoie un 404 Netlify).
+/*      /index.html  200

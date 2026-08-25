@@ -1,0 +1,12 @@
+{
+  "name": "frameforge",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n API,WEB -c cyan,yellow \"dotnet watch run --project api\" \"npm --prefix client run dev\"",
+    "install:all": "npm install && npm --prefix client install",
+    "build:client": "npm --prefix client run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

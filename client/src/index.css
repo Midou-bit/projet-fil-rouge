@@ -1,0 +1,278 @@
+/* ============================================================
+   FRAMEFORGE — Design system
+   Base Tron (froid, géométrique, glow sur fond sombre)
+   + accent jaune Cyberpunk réservé aux ACTIONS d'achat.
+   Le cyan guide, le jaune fait agir.
+   ============================================================ */
+
+:root {
+  --bg: #0a0e14;          /* fond — noir bleuté, jamais noir pur */
+  --surface: #121826;     /* cartes, panneaux */
+  --surface-hi: #1a2332;  /* survol, élévation */
+  --border: #223049;
+  --accent-cyan: #22d3ee; /* signature : liens actifs, barres, bordures glow */
+  --accent-yellow: #f5d90a; /* ACTION uniquement : CTA, "ajouter au panier" */
+  --danger: #ff2a6d;      /* "trop faible", erreurs */
+  --success: #34f5c5;     /* barre pleine, "ça tourne" */
+  --warning: #f5a623;
+  --text: #e2e8f0;        /* texte courant — gris clair, JAMAIS cyan fluo */
+  --text-muted: #8a93a3;
+
+  --font-title: 'Chakra Petch', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-body: 'Space Grotesk', sans-serif;
+
+  --radius: 10px;
+  --glow-cyan: 0 0 0 1px rgba(34, 211, 238, 0.4), 0 0 18px rgba(34, 211, 238, 0.25);
+  --glow-yellow: 0 0 0 1px rgba(245, 217, 10, 0.5), 0 0 22px rgba(245, 217, 10, 0.3);
+  --transition: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  /* léger maillage Tron en fond, très discret (anti-fatigue) */
+  background-image:
+    linear-gradient(rgba(34, 211, 238, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-title);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  margin: 0 0 0.5em;
+}
+
+h1 { font-size: clamp(1.9rem, 4vw, 3rem); }
+h2 { font-size: clamp(1.4rem, 3vw, 2rem); }
+
+a { color: var(--accent-cyan); text-decoration: none; transition: color var(--transition); }
+a:hover { color: #67e8f9; }
+
+code, .mono, .price, .spec { font-family: var(--font-mono); }
+
+.price { font-family: var(--font-mono); font-weight: 700; color: var(--text); }
+
+/* color: inherit → les boutons "nus" prennent le texte clair du thème (sinon noir par défaut,
+   illisible sur fond sombre). Les classes .btn-* qui fixent leur couleur l'emportent. */
+button { font-family: var(--font-body); cursor: pointer; color: inherit; }
+
+/* ---------- Boutons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-hi);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all var(--transition);
+}
+.btn:hover { border-color: var(--accent-cyan); box-shadow: var(--glow-cyan); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+/* CTA d'ACHAT — le jaune fait agir */
+.btn-action {
+  background: var(--accent-yellow);
+  color: #0a0e14;
+  border-color: var(--accent-yellow);
+  font-weight: 700;
+}
+.btn-action:hover { box-shadow: var(--glow-yellow); border-color: var(--accent-yellow); filter: brightness(1.05); }
+
+.btn-cyan { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+.btn-cyan:hover { background: rgba(34, 211, 238, 0.12); box-shadow: var(--glow-cyan); }
+
+.btn-ghost { background: transparent; }
+.btn-danger { border-color: var(--danger); color: var(--danger); }
+.btn-danger:hover { background: rgba(255, 42, 109, 0.12); box-shadow: 0 0 18px rgba(255, 42, 109, 0.25); }
+.btn-sm { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+.btn-block { width: 100%; }
+
+/* ---------- Cartes / surfaces ---------- */
+.surface { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+.card:hover { transform: translateY(-3px); border-color: rgba(34, 211, 238, 0.5); box-shadow: var(--glow-cyan); }
+
+/* Flèche des cartes "3 façons" : glisse à droite au survol de la carte. */
+.feature-arrow { display: inline-block; transition: transform var(--transition); }
+.feature-card:hover .feature-arrow { transform: translateX(5px); }
+
+/* ---------- Inputs ---------- */
+input, select, textarea {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.3);
+}
+label { font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 0.35rem; }
+
+/* ---------- Badges ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.badge-cyan { border-color: rgba(34, 211, 238, 0.5); color: var(--accent-cyan); }
+.badge-success { border-color: rgba(52, 245, 197, 0.5); color: var(--success); }
+.badge-danger { border-color: rgba(255, 42, 109, 0.5); color: var(--danger); }
+.badge-warning { border-color: rgba(245, 166, 35, 0.5); color: var(--warning); }
+
+/* ---------- Barre de stats (façon CoD) ---------- */
+.statbar { margin-bottom: 0.9rem; }
+.statbar-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  margin-bottom: 0.3rem;
+}
+.statbar-label { color: var(--text-muted); letter-spacing: 0.04em; text-transform: uppercase; }
+.statbar-value { color: var(--text); font-weight: 700; }
+.statbar-track {
+  height: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.statbar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--success));
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.5);
+}
+.statbar-fill.is-danger { background: linear-gradient(90deg, var(--danger), #ff6b9d); box-shadow: 0 0 12px rgba(255, 42, 109, 0.5); }
+.statbar-fill.is-warning { background: linear-gradient(90deg, var(--warning), var(--accent-yellow)); box-shadow: 0 0 12px rgba(245, 166, 35, 0.5); }
+
+/* ---------- Layout helpers ---------- */
+.container { width: min(1200px, 92vw); margin: 0 auto; }
+.grid { display: grid; gap: 1.25rem; }
+
+/* Mises en page 2 colonnes (contenu + panneau latéral) qui s'empilent sur mobile. */
+.split { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+.split-sidebar { grid-template-columns: minmax(0, 1fr) 300px; }
+@media (max-width: 860px) {
+  .split, .split-sidebar { grid-template-columns: 1fr; }
+}
+.row { display: flex; gap: 1rem; align-items: center; }
+.between { justify-content: space-between; }
+.wrap { flex-wrap: wrap; }
+.muted { color: var(--text-muted); }
+.center { text-align: center; }
+.stack > * + * { margin-top: 1rem; }
+
+/* glitch homéopathique : logo/titres au survol UNIQUEMENT */
+.glitch:hover {
+  animation: glitch 0.3s steps(2, end) 1;
+  text-shadow: 1.5px 0 var(--accent-cyan), -1.5px 0 var(--danger);
+}
+@keyframes glitch {
+  0% { transform: translate(0); }
+  25% { transform: translate(-1px, 1px); }
+  50% { transform: translate(1px, -1px); }
+  100% { transform: translate(0); }
+}
+
+.spinner {
+  width: 28px; height: 28px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent-cyan);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Visuel généré des composants (à la place des photos) ---------- */
+/* Tuile tech cohérente avec le thème : dégradé sombre + grille + icône qui glow.
+   container-type:size → l'icône/le texte s'adaptent à la taille du conteneur (cqmin). */
+.media-art {
+  position: relative;
+  width: 100%; height: 100%;
+  container-type: size;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 4cqmin; overflow: hidden;
+  background:
+    radial-gradient(90% 70% at 50% -10%, rgba(34, 211, 238, 0.22), transparent 70%),
+    linear-gradient(160deg, var(--surface-hi), var(--bg));
+}
+.media-art::before { /* maillage Tron */
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(34, 211, 238, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.07) 1px, transparent 1px);
+  background-size: 16% 16%;
+}
+.media-art::after { /* liseré bas qui glow */
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+  opacity: 0.6;
+}
+.media-art-icon {
+  position: relative;
+  font-size: 40cqmin; line-height: 1;
+  filter: drop-shadow(0 0 7px rgba(34, 211, 238, 0.55));
+}
+.media-art-label {
+  position: relative;
+  font-family: var(--font-mono);
+  font-size: 9cqmin;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--accent-cyan);
+  opacity: 0.85;
+}
+@container (max-width: 96px) {
+  .media-art-label { display: none; }
+  .media-art-icon { font-size: 52cqmin; }
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-cyan); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /panier
+Disallow: /checkout
+Disallow: /commandes
+
+Sitemap: https://frameforge.example/sitemap.xml
