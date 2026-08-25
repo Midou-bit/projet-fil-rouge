@@ -40,7 +40,8 @@ export default function AdminDashboard() {
         {stats.topProducts.length === 0 ? (
           <p className="muted">Aucune vente enregistrée pour l’instant.</p>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+          <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', minWidth: 320 }}>
             <thead>
               <tr className="muted" style={{ textAlign: 'left', fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>
                 <th style={{ padding: '0.4rem 0' }}>Produit</th><th>Qté</th><th style={{ textAlign: 'right' }}>CA</th>
@@ -56,6 +57,7 @@ export default function AdminDashboard() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

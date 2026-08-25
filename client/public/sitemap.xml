@@ -9,4 +9,5 @@
   <url><loc>https://frameforge-build.netlify.app/builder</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://frameforge-build.netlify.app/contact</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
   <url><loc>https://frameforge-build.netlify.app/confidentialite</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://frameforge-build.netlify.app/conditions</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>

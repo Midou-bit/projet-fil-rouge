@@ -3,6 +3,30 @@
 Journal des évolutions de FrameForge. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/),
 versions selon [SemVer](https://semver.org/lang/fr/). Entrées par ordre décroissant.
 
+## [1.3.0] — 2026-08-25 — Finitions de production
+
+### Ajouté
+- **Conditions générales et mentions légales** (`/conditions`) : éditeur, hébergeurs, objet du site,
+  prix, commande, paiement en mode démonstration, absence de livraison, propriété intellectuelle.
+  Liées depuis le pied de page et référencées au `sitemap.xml`.
+- **Image de partage** (`og-image.png`, 1200×630) plus les balises `og:image`, `og:url` et
+  `twitter:image`. Une fiche produit partage désormais sa propre photo via `useSeo`.
+- **Jeu de favicons complet** : PNG 32/192/512, `apple-touch-icon` 180×180 et `site.webmanifest`.
+- **Barre d'achat collante sous 860 px** sur la fiche produit : le bouton restait hors écran
+  dès qu'on déroulait les spécifications.
+- Titres et descriptions sur le panier, la confirmation et l'annulation de commande.
+
+### Modifié
+- **Mesure d'audience** : bascule de Plausible vers **GoatCounter**, gratuit et sans cookie.
+  La logique de consentement est inchangée, seule la variable de build devient `VITE_GOATCOUNTER_CODE`.
+- **Erreurs de formulaire** : connexion et contact affichent l'erreur dans le formulaire, conservée
+  jusqu'à correction, avec `aria-invalid` sur le champ. Les notifications flottantes gardent les
+  confirmations et portent enfin `role="alert"` et `aria-live`.
+- Adresse de contact remplacée par une adresse de démonstration : un e-mail personnel réel figurait
+  en clair sur une page indexable.
+- Trois tableaux (fiche produit, tableau de bord, catégories) placés dans un conteneur de défilement,
+  faute de quoi ils poussaient la page entière en défilement horizontal sur mobile.
+
 ## [1.2.1] — 2026-08-25 — Préparation de la mise en ligne
 
 ### Ajouté

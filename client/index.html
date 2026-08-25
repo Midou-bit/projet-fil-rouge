@@ -2,14 +2,32 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="FrameForge — composants PC + moteur de recommandation gaming. Choisis un jeu, on te dit quoi acheter." />
     <meta name="theme-color" content="#0a0e14" />
+
+    <!-- Icônes : SVG pour les navigateurs modernes, PNG de repli, icône iOS, manifeste. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Aperçu de partage (Open Graph + Twitter). L'URL de l'image doit être absolue :
+         les robots de Discord, LinkedIn ou WhatsApp ne résolvent pas les chemins relatifs. -->
+    <meta property="og:site_name" content="FrameForge" />
     <meta property="og:title" content="FrameForge — Forge ton build gaming" />
     <meta property="og:description" content="Composants PC + moteur de recommandation gaming. Choisis un jeu, on te dit quoi acheter pour le faire tourner." />
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:url" content="https://frameforge-build.netlify.app/" />
+    <meta property="og:image" content="https://frameforge-build.netlify.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="FrameForge — composants PC et moteur de recommandation gaming." />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="FrameForge — Forge ton build gaming" />
+    <meta name="twitter:description" content="Choisis un jeu, on te dit quoi acheter pour le faire tourner." />
+    <meta name="twitter:image" content="https://frameforge-build.netlify.app/og-image.png" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",

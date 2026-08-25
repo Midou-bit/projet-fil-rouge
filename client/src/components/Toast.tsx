@@ -21,11 +21,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ notify }}>
       {children}
-      <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 1000, display: 'grid', gap: 10 }}>
+      {/* Région live : sans elle, un lecteur d'écran n'annonce jamais ces messages, qui
+          apparaissent hors du flux de lecture puis disparaissent au bout de 3 secondes. */}
+      <div aria-live="polite" aria-atomic="false"
+        style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 1000, display: 'grid', gap: 10 }}>
         <AnimatePresence>
           {toasts.map((t) => (
             <motion.div
               key={t.id}
+              role={t.tone === 'error' ? 'alert' : 'status'}
               initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 40 }}

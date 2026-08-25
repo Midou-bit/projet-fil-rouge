@@ -4,8 +4,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-# VITE_PLAUSIBLE_DOMAIN optionnel (mesure d'audience) : --build-arg VITE_PLAUSIBLE_DOMAIN=ton-domaine
-ARG VITE_PLAUSIBLE_DOMAIN
+# VITE_GOATCOUNTER_CODE optionnel (mesure d'audience) : --build-arg VITE_GOATCOUNTER_CODE=ton-code
+ARG VITE_GOATCOUNTER_CODE
 RUN npm run build
 
 # --- Service statique + proxy /api ---

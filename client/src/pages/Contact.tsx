@@ -12,15 +12,19 @@ export default function Contact() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [sent, setSent] = useState(false);
+  // Erreur conservée dans le formulaire : l'utilisateur vient d'écrire un message long,
+  // il doit pouvoir lire ce qui a échoué sans que ça disparaisse au bout de 3 secondes.
+  const [error, setError] = useState<string | null>(null);
   const { notify } = useToast();
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
     try {
       await supportApi.send(email, subject, message);
       setSent(true);
       notify('Message envoyé !', 'success');
-    } catch (err) { notify(errorMessage(err), 'error'); }
+    } catch (err) { setError(errorMessage(err, "L'envoi a échoué. Réessaie dans un instant.")); }
   }
 
   return (
@@ -37,9 +41,23 @@ export default function Contact() {
         </div>
       ) : (
         <form onSubmit={submit} className="surface stack" style={{ padding: '1.5rem' }}>
-          <div><label>Email</label><input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-          <div><label>Sujet</label><input required value={subject} onChange={(e) => setSubject(e.target.value)} /></div>
-          <div><label>Message</label><textarea rows={5} required value={message} onChange={(e) => setMessage(e.target.value)} /></div>
+          <div>
+            <label htmlFor="contact-email">Email</label>
+            <input id="contact-email" type="email" required value={email} aria-invalid={error ? true : undefined}
+              onChange={(e) => { setEmail(e.target.value); setError(null); }} />
+          </div>
+          <div>
+            <label htmlFor="contact-subject">Sujet</label>
+            <input id="contact-subject" required value={subject}
+              onChange={(e) => { setSubject(e.target.value); setError(null); }} />
+          </div>
+          <div>
+            <label htmlFor="contact-message">Message</label>
+            <textarea id="contact-message" rows={5} required value={message}
+              aria-describedby={error ? 'contact-error' : undefined}
+              onChange={(e) => { setMessage(e.target.value); setError(null); }} />
+          </div>
+          {error && <p id="contact-error" role="alert" className="form-error">{error}</p>}
           <button className="btn btn-action">Envoyer</button>
         </form>
       )}

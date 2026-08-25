@@ -78,7 +78,10 @@ lint + tests + build front.
    d'une route React Router (`/boutique`, `/builder`…).
 2. Netlify → *Add new site* → *Import from Git* → **Base directory : `client`**.
 3. Build command : `npm run build` — Publish directory : `client/dist`. (Netlify sert HTTPS automatiquement.)
-4. *(optionnel)* variable de build `VITE_PLAUSIBLE_DOMAIN=ton-domaine` pour activer la mesure d'audience.
+4. *(optionnel)* variable de build `VITE_GOATCOUNTER_CODE=ton-code` pour activer la mesure d'audience
+   ([GoatCounter](https://www.goatcounter.com), gratuit et sans cookie). Le code est la partie qui
+   précède `.goatcounter.com` dans l'adresse de ton tableau de bord. Sans elle, aucun script de suivi
+   n'est chargé.
 
 ### 3. Renseigner le domaine réel (SEO)
 

@@ -18,6 +18,7 @@ const Checker = lazy(() => import('./pages/Checker'));
 const Builder = lazy(() => import('./pages/Builder'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Privacy = lazy(() => import('./pages/Privacy'));
+const Terms = lazy(() => import('./pages/Terms'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="builder" element={<Builder />} />
         <Route path="contact" element={<Contact />} />
         <Route path="confidentialite" element={<Privacy />} />
+        <Route path="conditions" element={<Terms />} />
         <Route path="login" element={<Login />} />
         <Route path="panier" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
         <Route path="commandes" element={<ProtectedRoute><Orders /></ProtectedRoute>} />

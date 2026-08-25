@@ -5,8 +5,10 @@ import { checkoutApi } from '../api/endpoints';
 import { euro } from '../lib/format';
 import { useToast } from '../components/Toast';
 import { errorMessage } from '../api/client';
+import { useSeo } from '../lib/seo';
 
 export default function CartPage() {
+  useSeo('Mon panier', 'Vérifie ta sélection de composants et finalise ta commande FrameForge.');
   const { cart, loading, updateItem, removeItem, refresh } = useCart();
   const { notify } = useToast();
   const navigate = useNavigate();

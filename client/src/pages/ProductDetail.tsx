@@ -53,6 +53,7 @@ export default function ProductDetail() {
     product?.name,
     product ? `${product.name} — ${product.brand}, ${product.categoryName}. ${product.description}`.slice(0, 160) : undefined,
     jsonLd,
+    product?.imageUrl,
   );
 
   async function add() {
@@ -87,7 +88,7 @@ export default function ProductDetail() {
   const specs = parseSpecs(product.specs);
 
   return (
-    <div className="container">
+    <div className="container has-buybar">
       <Link to="/boutique" className="muted" style={{ fontSize: '0.88rem' }}>← Retour à la boutique</Link>
       <div className="grid split" style={{ marginTop: '1rem', alignItems: 'start' }}>
         <div className="surface" style={{ position: 'relative', overflow: 'hidden', aspectRatio: '3/2' }}>
@@ -121,16 +122,20 @@ export default function ProductDetail() {
           {specs.length > 0 && (
             <div className="surface" style={{ padding: '1rem' }}>
               <h3 style={{ fontSize: '1rem', marginTop: 0 }}>Spécifications</h3>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
-                <tbody>
-                  {specs.map(([k, v]) => (
-                    <tr key={k} style={{ borderTop: '1px solid var(--border)' }}>
-                      <td className="muted" style={{ padding: '0.4rem 0' }}>{k}</td>
-                      <td style={{ padding: '0.4rem 0', textAlign: 'right' }}>{v}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {/* Conteneur de défilement : une valeur longue ne doit pas pousser toute la page
+                  en défilement horizontal sur un écran étroit. */}
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
+                  <tbody>
+                    {specs.map(([k, v]) => (
+                      <tr key={k} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td className="muted" style={{ padding: '0.4rem 0' }}>{k}</td>
+                        <td style={{ padding: '0.4rem 0', textAlign: 'right' }}>{v}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
@@ -166,6 +171,20 @@ export default function ProductDetail() {
           </div>
         )}
       </section>
+
+      {/* Barre d'achat collante, mobile uniquement : au-delà de 860 px le bouton reste
+          visible dans la colonne de droite, la barre est masquée en CSS. */}
+      <div className="buybar">
+        <div>
+          <div className="price" style={{ fontSize: '1.15rem', lineHeight: 1.2 }}>{euro(product.price)}</div>
+          <span className="muted" style={{ fontSize: '0.75rem' }}>
+            {product.stock > 0 ? `En stock (${product.stock})` : 'Rupture de stock'}
+          </span>
+        </div>
+        <button className="btn btn-action" disabled={product.stock <= 0} onClick={add}>
+          🛒 Ajouter au panier
+        </button>
+      </div>
     </div>
   );
 }

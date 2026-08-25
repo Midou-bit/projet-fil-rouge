@@ -37,6 +37,7 @@ export default function Layout() {
             <Link to="/builder">Builder</Link>
             <Link to="/contact">Contact</Link>
             <Link to="/confidentialite">Confidentialité</Link>
+            <Link to="/conditions">Conditions & mentions légales</Link>
           </div>
         </div>
       </footer>

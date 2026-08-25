@@ -9,3 +9,7 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  # Mesure d'audience GoatCounter (gratuite, sans cookie). Renseigner le code de site pour
+  # l'activer, par exemple VITE_GOATCOUNTER_CODE = "frameforge". Absente ou vide, aucun
+  # script de suivi n'est chargé et la bannière cookies n'a rien à activer.
+  VITE_GOATCOUNTER_CODE = ""

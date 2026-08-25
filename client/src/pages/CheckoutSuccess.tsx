@@ -4,8 +4,10 @@ import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { checkoutApi } from '../api/endpoints';
 import { useCart } from '../context/CartContext';
+import { useSeo } from '../lib/seo';
 
 export default function CheckoutSuccess() {
+  useSeo('Commande confirmée', 'Ta commande FrameForge est enregistrée. Retrouve-la dans « Mes commandes ».');
   const [params] = useSearchParams();
   const orderId = Number(params.get('orderId'));
   const simulated = params.get('simulated') === '1';

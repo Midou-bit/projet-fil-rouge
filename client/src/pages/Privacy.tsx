@@ -16,7 +16,12 @@ export default function Privacy() {
       <section className="stack" style={{ gap: '1.2rem', marginTop: '1.5rem' }}>
         <div>
           <h2>1. Responsable du traitement</h2>
-          <p>FrameForge (projet étudiant). Contact : <a href="mailto:elhasnaouiahmed3a1@gmail.com">elhasnaouiahmed3a1@gmail.com</a>.</p>
+          <p>
+            FrameForge (projet étudiant). Contact : <a href="mailto:contact@frameforge.dev">contact@frameforge.dev</a>,
+            adresse de démonstration. Pour une demande réelle, passe par le{' '}
+            <Link to="/contact">formulaire de contact</Link> : les messages arrivent dans l'espace
+            d'administration du site.
+          </p>
         </div>
         <div>
           <h2>2. Données collectées</h2>

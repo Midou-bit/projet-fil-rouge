@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
+import { useSeo } from '../lib/seo';
 
 export default function CheckoutCancel() {
+  useSeo('Paiement annulé', 'Ton paiement a été interrompu. Aucun montant n’a été débité, ton panier FrameForge est intact.');
   return (
     <div className="container center" style={{ maxWidth: 520, padding: '2rem' }}>
       <div style={{ fontSize: '3.5rem' }}>🛑</div>

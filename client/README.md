@@ -48,7 +48,7 @@ Chaque page est chargée en **lazy** ([`App.tsx`](src/App.tsx)) : le bundle init
 
 | Variable | Rôle |
 |---|---|
-| `VITE_PLAUSIBLE_DOMAIN` | Domaine pour la mesure d'audience anonyme. Absente → aucun script de suivi n'est chargé. |
+| `VITE_GOATCOUNTER_CODE` | Code de site GoatCounter pour la mesure d'audience anonyme et sans cookie. Absente → aucun script de suivi n'est chargé. |
 
 La mesure d'audience n'est activée qu'**après consentement explicite** via la bannière cookies
 ([`components/CookieBanner.tsx`](src/components/CookieBanner.tsx)).

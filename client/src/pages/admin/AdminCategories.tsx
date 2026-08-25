@@ -37,8 +37,8 @@ export default function AdminCategories() {
 
   return (
     <div className="grid split-sidebar" style={{ alignItems: 'start' }}>
-      <div className="surface">
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+      <div className="surface" style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', minWidth: 380 }}>
           <thead>
             <tr className="muted" style={{ textAlign: 'left', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
               <th style={{ padding: '0.6rem' }}>Nom</th><th>Slug</th><th>Produits</th><th></th>

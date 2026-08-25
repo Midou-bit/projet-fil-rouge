@@ -12,6 +12,9 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Erreur affichée DANS le formulaire et conservée jusqu'à correction : une notification
+  // flottante disparaît en 3 secondes, or la règle de mot de passe fait plusieurs lignes.
+  const [error, setError] = useState<string | null>(null);
   const { login, register } = useAuth();
   const { notify } = useToast();
   const navigate = useNavigate();
@@ -21,13 +24,14 @@ export default function Login() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    setError(null);
     try {
       if (mode === 'login') await login(email, password);
       else await register(email, password);
       notify('Bienvenue sur FrameForge.', 'success');
       navigate(from, { replace: true });
     } catch (err) {
-      notify(errorMessage(err, 'Échec de la connexion.'), 'error');
+      setError(errorMessage(err, mode === 'login' ? 'Échec de la connexion.' : 'Échec de la création du compte.'));
     } finally {
       setBusy(false);
     }
@@ -45,15 +49,18 @@ export default function Login() {
         <h1 style={{ marginTop: 0 }}>{mode === 'login' ? 'Connexion' : 'Créer un compte'}</h1>
         <form onSubmit={submit} className="stack">
           <div>
-            <label>Email</label>
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+            <label htmlFor="login-email">Email</label>
+            <input id="login-email" type="email" required value={email} aria-invalid={error ? true : undefined}
+              onChange={(e) => { setEmail(e.target.value); setError(null); }} autoComplete="email" />
           </div>
           <div>
             <label>Mot de passe</label>
             <div style={{ position: 'relative' }}>
-              <input type={showPassword ? 'text' : 'password'} required
+              <input id="login-password" type={showPassword ? 'text' : 'password'} required
                 minLength={mode === 'register' ? 12 : undefined} value={password}
-                onChange={(e) => setPassword(e.target.value)} style={{ paddingRight: '2.6rem' }}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? 'login-error' : undefined}
+                onChange={(e) => { setPassword(e.target.value); setError(null); }} style={{ paddingRight: '2.6rem' }}
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
               <button type="button" onClick={() => setShowPassword((v) => !v)}
                 aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
@@ -72,6 +79,9 @@ export default function Login() {
               </span>
             )}
           </div>
+          {error && (
+            <p id="login-error" role="alert" className="form-error">{error}</p>
+          )}
           <button className="btn btn-action btn-block" disabled={busy}>
             {busy ? '…' : mode === 'login' ? 'Se connecter' : "S'inscrire"}
           </button>
@@ -79,7 +89,7 @@ export default function Login() {
         <p className="muted center" style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
           {mode === 'login' ? 'Pas de compte ?' : 'Déjà inscrit ?'}{' '}
           <button className="btn btn-sm btn-ghost" type="button"
-            onClick={() => setMode(mode === 'login' ? 'register' : 'login')}>
+            onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null); }}>
             {mode === 'login' ? "S'inscrire" : 'Se connecter'}
           </button>
         </p>
