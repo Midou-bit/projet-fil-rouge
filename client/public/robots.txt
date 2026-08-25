@@ -5,4 +5,4 @@ Disallow: /panier
 Disallow: /checkout
 Disallow: /commandes
 
-Sitemap: https://frameforge.example/sitemap.xml
+Sitemap: https://frameforge-build.netlify.app/sitemap.xml

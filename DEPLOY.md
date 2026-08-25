@@ -1,5 +1,19 @@
 # Déploiement de FrameForge
 
+## Adresses de production
+
+| Élément | Adresse | Hébergeur |
+|---|---|---|
+| **Site** | https://frameforge-build.netlify.app | Netlify (offre gratuite) |
+| **API** | https://frameforge-c231.onrender.com | Render (offre gratuite, Docker) |
+
+Le site appelle l'API via `/api`, réécrit côté serveur par `client/public/_redirects`.
+Paiement en **mode démo** (aucune clé Stripe en production).
+
+Le reste de ce document explique comment reproduire ce déploiement de zéro.
+
+---
+
 Le site doit être **accessible en ligne** pour la soutenance. Deux options.
 
 ## Option A — Local « type production » (Docker Compose)
