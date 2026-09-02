@@ -295,8 +295,10 @@ graph TB
     CART --> CLI
 ```
 
-Le jeton d'authentification est conservé **en mémoire**, injecté par un intercepteur sur chaque
-requête sortante. Un second intercepteur surveille les réponses : un état 401 sur une requête qui
+Le jeton d'authentification est conservé en **`sessionStorage`**, donc effacé à la fermeture de
+l'onglet, et injecté par un intercepteur sur chaque requête sortante. Le choix de
+`sessionStorage` plutôt que `localStorage` limite la durée d'exposition ; le jeton expire de
+toute façon au bout de douze heures côté serveur. Un second intercepteur surveille les réponses : un état 401 sur une requête qui
 portait un jeton déclenche la purge de la session. La distinction est volontaire, un 401 sur une
 requête sans jeton est un simple échec de connexion et ne doit pas purger quoi que ce soit.
 
@@ -312,7 +314,7 @@ paquet initial.
 | SQLite plutôt qu'un serveur de base | Aucune administration, aucun coût, fonctionne sur l'environnement de développement Linux | Base éphémère en production, régénérée et réalimentée à chaque déploiement |
 | Montants stockés en centimes entiers | SQLite ne gère pas nativement le type décimal, et un stockage textuel casserait le tri numérique | Conversion explicite à l'entrée et à la sortie |
 | Jeton de concurrence sur le stock | Empêcher la survente sans verrou explicite | Le conflit doit être traité dans les contrôleurs |
-| Jeton en mémoire plutôt qu'en stockage local | Réduire la surface d'exposition à une injection de script | Reconnexion nécessaire après rechargement de la page |
+| Jeton en `sessionStorage` plutôt qu'en `localStorage` | Réduire la durée d'exposition : la session tombe à la fermeture de l'onglet | Reconnexion nécessaire à chaque nouvel onglet |
 | Import des jeux en tâche de fond | Un appel réseau au démarrage bloquait le service une vingtaine de secondes | Les jeux apparaissent quelques secondes après le premier démarrage |
 | Adresse de base relative côté interface | L'infrastructure décide du routage, pas le code | Une règle de réécriture est obligatoire à chaque déploiement |
 | Documentation d'API réservée au développement | Ne pas exposer la surface de l'interface en production | Elle n'est pas démontrable sur l'adresse publique |

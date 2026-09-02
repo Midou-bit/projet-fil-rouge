@@ -16,6 +16,12 @@ professionnel, sans s'y substituer.
 | [05. Veille technique](05-veille-technique.md) | Proposer des solutions alternatives issues de la veille métier |
 | [06. Maquettes et zoning](06-maquettes.md) | Concevoir les maquettes wireframe, concevoir l'interface conformément |
 
+Le dossier contient aussi un support de soutenance :
+
+| Document | Objet |
+|---|---|
+| [07. Prompt de génération du support d'oral](07-prompt-oral.md) | Prompt autoporteur, à donner à un outil de génération de présentation. Contient l'inventaire factuel vérifié, la charte graphique du projet, le plan minuté sur vingt minutes et le scénario de démonstration live. |
+
 Les compétences relatives au RGPD et à la CNIL sont traitées dans le [cahier des
 charges](01-cahier-des-charges.md#6-contraintes-reglementaires) et mises en œuvre dans l'application,
 sur les pages `/confidentialite` et `/conditions`.
