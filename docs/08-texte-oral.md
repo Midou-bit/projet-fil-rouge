@@ -12,6 +12,16 @@ DÉMONTRE** rappellent le bloc de compétences visé, à garder en tête sans fo
 | L'interface de programmation | https://frameforge-c231.onrender.com |
 | Le dépôt de code | https://github.com/Midou-bit/projet-fil-rouge |
 
+**Comptes de démonstration**
+
+| Rôle | Identifiant | Mot de passe | Ce qu'il donne |
+|---|---|---|---|
+| Client | `client@frameforge.dev` | `ClientFrame2026!` | Panier, commande, avis, suppression de compte |
+| Administrateur | `admin@frameforge.dev` | `AdminFrame2026!` | Tableau de bord, catalogue, catégories, commandes, support |
+
+Ces deux comptes sont proposés en un clic sur la page de connexion du site, et affichés en clair
+juste en dessous. Tu n'as donc rien à retenir ni à taper pendant la démonstration.
+
 > Ouvre le site cinq minutes avant de passer. Le serveur se met en veille après quinze minutes sans
 > visite et met environ une minute à se réveiller.
 
@@ -477,8 +487,8 @@ Je vous remercie, et je suis à votre disposition pour vos questions.
 Cinq minutes avant, ouvre le site et laisse la boutique charger, le serveur se réveille en une
 minute environ.
 
-Prépare les identifiants du compte de démonstration à la main, les boutons de remplissage
-automatique n'existent pas en ligne.
+Les deux comptes de démonstration sont désormais proposés en un clic sur la page de connexion du
+site, et écrits en clair juste dessous. Rien à taper, rien à retenir.
 
 Prépare deux ou trois captures d'écran de secours si le réseau lâche.
 
