@@ -94,16 +94,29 @@ export default function Login() {
           </button>
         </p>
 
-        {/* Boutons de remplissage démo : uniquement en dev local, jamais dans un build de prod. */}
-        {import.meta.env.DEV && (
-          <div className="surface" style={{ padding: '0.8rem', marginTop: '1rem', background: 'var(--bg)' }}>
-            <p className="muted" style={{ fontSize: '0.8rem', margin: '0 0 0.5rem', fontFamily: 'var(--font-mono)' }}>Comptes de démo :</p>
-            <div className="row" style={{ gap: '0.5rem' }}>
-              <button type="button" className="btn btn-sm" onClick={() => demo('admin')}>Admin</button>
-              <button type="button" className="btn btn-sm" onClick={() => demo('client')}>Client</button>
-            </div>
+        {/* Comptes de démonstration, visibles AUSSI en production : FrameForge est un projet
+            de démonstration dont la base est réinitialisée à chaque déploiement. Un visiteur
+            doit pouvoir parcourir le tunnel d'achat et l'espace d'administration sans créer de
+            compte. Les identifiants sont de toute façon publiés dans le README du dépôt. */}
+        <div className="surface" style={{ padding: '0.9rem', marginTop: '1rem', background: 'var(--bg)' }}>
+          <p className="muted" style={{ fontSize: '0.8rem', margin: '0 0 0.6rem', fontFamily: 'var(--font-mono)' }}>
+            Comptes de démonstration, un clic pour remplir :
+          </p>
+          <div className="row wrap" style={{ gap: '0.5rem' }}>
+            <button type="button" className="btn btn-sm" onClick={() => demo('client')}
+              title="client@frameforge.dev">
+              Client
+            </button>
+            <button type="button" className="btn btn-sm" onClick={() => demo('admin')}
+              title="admin@frameforge.dev">
+              Administrateur
+            </button>
           </div>
-        )}
+          <p className="muted" style={{ fontSize: '0.72rem', margin: '0.6rem 0 0', lineHeight: 1.5 }}>
+            <code>client@frameforge.dev</code> · <code>ClientFrame2026!</code><br />
+            <code>admin@frameforge.dev</code> · <code>AdminFrame2026!</code>
+          </p>
+        </div>
       </div>
     </div>
   );
