@@ -21,12 +21,14 @@ Le site doit être **accessible en ligne** pour la soutenance. Deux options.
 Vérifie que tout tourne comme en prod (front nginx + API conteneurisée) :
 
 ```bash
+export FRAMEFORGE_JWT_KEY="<clé locale aléatoire d'au moins 32 octets>"
 docker compose up --build
 # → http://localhost:8080  (le front proxie /api vers l'API)
 ```
 
-⚠️ Renseigne une vraie clé JWT en Production dans `docker-compose.yml` (`Jwt__Key`, ≥ 32 caractères),
-sinon l'API refuse de démarrer (sécurité voulue).
+La variable reste locale et ne doit jamais être écrite dans Git. Compose la transmet à `Jwt__Key` ;
+si elle est absente ou faible, l'API refuse de démarrer en Production (sécurité voulue). SQLite est
+persistée dans le volume `/data`, séparé des binaires de l'application.
 
 ## Option B — Mise en ligne (hébergeurs gratuits)
 
@@ -48,22 +50,25 @@ git push -u origin main
 > Ne doivent **jamais** être commités : `api/appsettings.Development.json` (clés) et `api/frameforge.db`
 > (base locale). Ils sont couverts par `.gitignore` — le `git status` ci-dessus le confirme.
 
-Le push déclenche aussi la CI GitHub Actions (`.github/workflows/ci.yml`) : build + tests API,
-lint + tests + build front.
+Un push sur `main` ou l'ouverture/mise à jour d'une pull request déclenche la CI GitHub Actions
+(`.github/workflows/ci.yml`) : builds, lint, tests et seuils de couverture, audit des dépendances,
+artefacts Cobertura/HTML et build des deux images Docker. Un simple push de branche sans pull request
+ne déclenche pas ce workflow.
 
 ### 1. API — Render (ou Railway / Fly.io)
 
 1. Render → *New* → *Web Service* → connecte le repo → **Root Directory : `api`** (détecte le `Dockerfile`).
 2. Variables d'environnement :
    - `Jwt__Key` = une chaîne aléatoire ≥ 32 caractères **(obligatoire — l'API refuse de démarrer sans)**
-   - `Stripe__SecretKey` = `sk_test_...` *(optionnel ; sinon paiement simulé — c'est le mode retenu)*
+   - `Stripe__Mode` = `Simulation` *(mode retenu)* ou `StripeTest`
+   - `Stripe__SecretKey` = `sk_test_...` *(obligatoire uniquement avec `StripeTest`; jamais de clé live)*
 3. Déploie → tu obtiens une URL, ex. `https://frameforge-api.onrender.com`.
    (Render termine le TLS ; l'API gère `X-Forwarded-Proto` → pas de boucle de redirection.)
 
-> **Si tu actives un jour de vraies clés Stripe**, ajoute aussi `Stripe__SuccessUrl` et
+> **Si tu actives un jour Stripe en mode test**, ajoute aussi `Stripe__SuccessUrl` et
 > `Stripe__CancelUrl` pointant sur le domaine public (`https://<ton-site>/checkout/success` et
 > `/checkout/cancel`). Sans elles, `appsettings.json` renvoie l'acheteur sur `http://localhost:5173`
-> après paiement. Sans clé Stripe (mode démo), ce point est sans effet.
+> après paiement. En mode `Simulation`, ce point est sans effet.
 
 ### 2. Front — Netlify (ou Vercel)
 
@@ -77,25 +82,25 @@ lint + tests + build front.
    donc le CORS de l'API n'a pas besoin d'être élargi. La règle `/*` évite les 404 sur rafraîchissement
    d'une route React Router (`/boutique`, `/builder`…).
 2. Netlify → *Add new site* → *Import from Git* → **Base directory : `client`**.
-3. Build command : `npm run build` — Publish directory : `client/dist`. (Netlify sert HTTPS automatiquement.)
+3. Build command : `npm run build` — Publish directory : `dist` (relative à la base `client`).
+   Netlify sert HTTPS automatiquement.
 4. *(optionnel)* variable de build `VITE_GOATCOUNTER_CODE=ton-code` pour activer la mesure d'audience
-   ([GoatCounter](https://www.goatcounter.com), gratuit et sans cookie). Le code est la partie qui
+   ([GoatCounter](https://www.goatcounter.com), service externe optionnel). Le code est la partie qui
    précède `.goatcounter.com` dans l'adresse de ton tableau de bord. Sans elle, aucun script de suivi
    n'est chargé.
 
-### 3. Renseigner le domaine réel (SEO)
+### 3. Vérifier le domaine SEO
 
-Trois fichiers contiennent encore le domaine d'exemple `https://frameforge.example` — à remplacer par
-l'URL Netlify, puis redéployer le front :
-
-- `client/public/sitemap.xml` (8 URLs)
-- `client/public/robots.txt` (ligne `Sitemap:`)
-- `client/index.html` (bloc JSON-LD `Organization`, champ `url`)
+Le domaine versionné est `https://frameforge-build.netlify.app` dans le canonical initial, les
+métadonnées de partage, le JSON-LD, `robots.txt` et `sitemap.xml`. Si l'URL publique change, modifier
+ces emplacements ensemble avant de redéployer. Les pages mettent ensuite à jour leur canonical sans
+query-string via `useSeo` ; le sitemap reste volontairement statique et ne liste pas chaque produit.
 
 ### 4. Vérifier
 
 - Ouvre l'URL Netlify → l'accueil s'affiche, la boutique charge les produits (preuve que `/api` est bien proxifié).
 - Rafraîchis directement sur `/boutique` → pas de 404 (règle SPA active).
+- Contrôle les en-têtes CSP, `nosniff`, anti-iframe, referrer et permissions livrés par Netlify.
 - Connexion avec un compte démo, ajout au panier, checkout (mode démo), page confidentialité, bannière cookies.
 - `/robots.txt` et `/sitemap.xml` affichent le vrai domaine.
 - Suppression de compte depuis « Mes commandes » (droit à l'effacement RGPD).

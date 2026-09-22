@@ -1,8 +1,9 @@
 User-agent: *
 Allow: /
-Disallow: /admin
+Disallow: /admin/
 Disallow: /panier
-Disallow: /checkout
+Disallow: /checkout/
 Disallow: /commandes
+Disallow: /login
 
 Sitemap: https://frameforge-build.netlify.app/sitemap.xml

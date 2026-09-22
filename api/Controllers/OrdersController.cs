@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using api.Data;
 using api.DTOs;
@@ -15,7 +16,13 @@ namespace api.Controllers;
 public class OrdersController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public OrdersController(AppDbContext db) => _db = db;
+    private readonly ILogger<OrdersController> _logger;
+
+    public OrdersController(AppDbContext db, ILogger<OrdersController> logger)
+    {
+        _db = db;
+        _logger = logger;
+    }
 
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
@@ -77,15 +84,23 @@ public class OrdersController : ControllerBase
     {
         var o = await _db.Orders.FindAsync(id);
         if (o is null) return NotFound();
-        if (!Enum.TryParse<OrderStatus>(dto.Status, true, out var status))
+        var rawStatus = dto.Status.Trim();
+        if (int.TryParse(rawStatus, out _) ||
+            !Enum.TryParse<OrderStatus>(rawStatus, true, out var status) ||
+            !Enum.IsDefined(status))
             return BadRequest(new { message = "Statut invalide." });
         o.Status = status;
         await _db.SaveChangesAsync();
+        _logger.LogInformation(
+            "Statut de commande modifié. Status={Status} TraceId={TraceId}",
+            o.Status,
+            HttpContext.TraceIdentifier);
         return Ok(new { status = o.Status.ToString() });
     }
 }
 
 public class UpdateOrderStatusDto
 {
+    [Required, StringLength(20)]
     public string Status { get; set; } = string.Empty;
 }

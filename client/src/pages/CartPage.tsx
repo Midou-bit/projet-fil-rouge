@@ -9,7 +9,7 @@ import { useSeo } from '../lib/seo';
 
 export default function CartPage() {
   useSeo('Mon panier', 'Vérifie ta sélection de composants et finalise ta commande FrameForge.');
-  const { cart, loading, updateItem, removeItem, refresh } = useCart();
+  const { cart, loading, updateItem, removeItem } = useCart();
   const { notify } = useToast();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
@@ -18,12 +18,14 @@ export default function CartPage() {
     setBusy(true);
     try {
       const res = await checkoutApi.create();
-      if (res.checkoutUrl) {
+      if (res.paymentMode === 'stripe_test' && res.checkoutUrl) {
         window.location.href = res.checkoutUrl; // redirection Stripe test
-      } else if (res.simulated) {
-        // Mode démo : paiement simulé côté API, on va direct à la page de succès.
-        await refresh();
-        navigate(`/checkout/success?orderId=${res.orderId}&simulated=1`);
+      } else if (res.paymentMode === 'simulation') {
+        // Cette page ne déclare aucun succès : la page suivante demandera au serveur de
+        // confirmer la commande, son propriétaire, son statut et le stock.
+        navigate(`/checkout/success?orderId=${res.orderId}`);
+      } else {
+        notify('Mode de paiement serveur invalide.', 'error');
       }
     } catch (e) {
       notify(errorMessage(e), 'error');
@@ -33,7 +35,10 @@ export default function CartPage() {
   }
 
   if (loading && !cart) {
-    return <div className="container center" style={{ padding: '3rem' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>;
+    return <div className="container center" role="status" aria-live="polite" style={{ padding: '3rem' }}>
+      <div className="spinner" aria-hidden="true" style={{ margin: '0 auto' }} />
+      <span className="sr-only">Chargement du panier…</span>
+    </div>;
   }
 
   if (!cart || cart.items.length === 0) {
@@ -61,7 +66,8 @@ export default function CartPage() {
                 <div className="price muted" style={{ fontSize: '0.85rem' }}>{euro(it.unitPrice)} / unité</div>
               </div>
               {/* Commit sur blur/Enter (pas à chaque frappe) → évite une rafale de requêtes. */}
-              <input type="number" min={1} max={it.stock} defaultValue={it.quantity} key={`${it.id}-${it.quantity}`}
+              <input type="number" aria-label={`Quantité de ${it.productName}`} min={1} max={it.stock}
+                defaultValue={it.quantity} key={`${it.id}-${it.quantity}`}
                 style={{ width: 70 }}
                 onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                 onBlur={(e) => {
@@ -82,10 +88,10 @@ export default function CartPage() {
           <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '1rem 0' }} />
           <div className="row between"><strong>Total</strong><span className="price" style={{ fontSize: '1.4rem' }}>{euro(cart.total)}</span></div>
           <button className="btn btn-action btn-block" style={{ marginTop: '1rem' }} disabled={busy} onClick={checkout}>
-            {busy ? '…' : '💳 Payer'}
+            {busy ? '…' : '💳 Valider la commande'}
           </button>
           <p className="muted center" style={{ fontSize: '0.75rem', marginTop: '0.6rem' }}>
-            Paiement Stripe en mode test — carte 4242 4242 4242 4242.
+            Le mode de démonstration actif est décidé et vérifié par le serveur.
           </p>
         </div>
       </div>

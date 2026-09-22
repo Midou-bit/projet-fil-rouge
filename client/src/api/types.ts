@@ -145,3 +145,39 @@ export interface AuthResponse {
   email: string;
   role: string;
 }
+
+export interface AccountExportItem {
+  productId: number;
+  productName: string;
+  unitPrice: number;
+  quantity: number;
+}
+
+export interface AccountExport {
+  exportedAtUtc: string;
+  account: { email: string; createdAt: string; roles: string[] };
+  cart: { items: AccountExportItem[]; total: number };
+  orders: Array<{
+    id: number;
+    totalPrice: number;
+    status: string;
+    createdAt: string;
+    items: AccountExportItem[];
+  }>;
+  reviews: Array<{
+    id: number;
+    productId: number;
+    productName: string;
+    rating: number;
+    comment: string;
+    createdAt: string;
+  }>;
+  supportMessages: Array<{
+    id: number;
+    email: string;
+    subject: string;
+    message: string;
+    status: string;
+    createdAt: string;
+  }>;
+}

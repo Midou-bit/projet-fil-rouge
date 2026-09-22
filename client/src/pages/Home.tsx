@@ -122,7 +122,10 @@ export default function Home() {
           <Link to="/boutique" className="btn btn-sm btn-ghost">Tout voir →</Link>
         </div>
         {isLoading ? (
-          <div className="center" style={{ padding: '2rem' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
+          <div className="center" role="status" aria-live="polite" style={{ padding: '2rem' }}>
+            <div className="spinner" aria-hidden="true" style={{ margin: '0 auto' }} />
+            <span className="sr-only">Chargement des produits les plus performants…</span>
+          </div>
         ) : (
           <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
             {top.map((p) => <ProductCard key={p.id} product={p} />)}

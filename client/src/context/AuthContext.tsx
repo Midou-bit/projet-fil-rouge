@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { onUnauthorized, setAuthToken } from '../api/client';
 import { authApi } from '../api/endpoints';
 
@@ -37,6 +38,7 @@ function readSession(): AuthState {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   // Lazy-init : on restaure la session ET on amorce axios AVANT le 1er rendu — donc avant les
   // effets des enfants (CartProvider) qui déclenchent les premiers appels authentifiés.
   const [state, setState] = useState<AuthState>(() => {
@@ -50,6 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [state.token]);
 
   function apply(token: string, email: string, role: string) {
+    // Le cache React Query contient des données privées (commandes, administration).
+    // Une identité ne doit jamais hériter du cache de la session précédente.
+    void queryClient.cancelQueries();
+    queryClient.clear();
     setAuthToken(token);
     setState({ token, email, role });
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ token, email, role }));
@@ -66,6 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
+    void queryClient.cancelQueries();
+    queryClient.clear();
     setAuthToken(null);
     setState({ token: null, email: null, role: null });
     sessionStorage.removeItem(STORAGE_KEY);
@@ -74,11 +82,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Token expiré/invalide (401 sur une requête authentifiée) → on déconnecte proprement.
   useEffect(() => {
     onUnauthorized(() => {
+      void queryClient.cancelQueries();
+      queryClient.clear();
       setAuthToken(null);
       setState({ token: null, email: null, role: null });
       sessionStorage.removeItem(STORAGE_KEY);
     });
-  }, []);
+  }, [queryClient]);
 
   return (
     <AuthContext.Provider

@@ -13,40 +13,40 @@ namespace api.Controllers;
 public class ProductsController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public ProductsController(AppDbContext db) => _db = db;
+    private readonly ILogger<ProductsController> _logger;
+
+    public ProductsController(AppDbContext db, ILogger<ProductsController> logger)
+    {
+        _db = db;
+        _logger = logger;
+    }
 
     /// <summary>Catalogue avec recherche, filtres (catégorie, marque, prix, perf) et tri paginés.</summary>
     [HttpGet]
-    public async Task<ActionResult<PagedResult<ProductDto>>> GetAll(
-        [FromQuery] string? search,
-        [FromQuery] string? category,
-        [FromQuery] string? brand,
-        [FromQuery] decimal? minPrice,
-        [FromQuery] decimal? maxPrice,
-        [FromQuery] int? minPerf,
-        [FromQuery] string sort = "name",
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 12)
+    public async Task<ActionResult<PagedResult<ProductDto>>> GetAll([FromQuery] ProductQueryDto query)
     {
+        if (query.MinPrice.HasValue && query.MaxPrice.HasValue && query.MinPrice > query.MaxPrice)
+            return BadRequest(new { message = "Le prix minimum ne peut pas dépasser le prix maximum." });
+
         var q = _db.Products
             .Include(p => p.Category)
             .Include(p => p.Reviews)
             .AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(search))
+        if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var s = search.ToLower();
+            var s = query.Search.ToLower();
             q = q.Where(p => p.Name.ToLower().Contains(s) || p.Brand.ToLower().Contains(s));
         }
-        if (!string.IsNullOrWhiteSpace(category))
-            q = q.Where(p => p.Category!.Slug == category);
-        if (!string.IsNullOrWhiteSpace(brand))
-            q = q.Where(p => p.Brand == brand);
-        if (minPrice.HasValue) q = q.Where(p => p.Price >= minPrice.Value);
-        if (maxPrice.HasValue) q = q.Where(p => p.Price <= maxPrice.Value);
-        if (minPerf.HasValue) q = q.Where(p => p.PerfScore >= minPerf.Value);
+        if (!string.IsNullOrWhiteSpace(query.Category))
+            q = q.Where(p => p.Category!.Slug == query.Category);
+        if (!string.IsNullOrWhiteSpace(query.Brand))
+            q = q.Where(p => p.Brand == query.Brand);
+        if (query.MinPrice.HasValue) q = q.Where(p => p.Price >= query.MinPrice.Value);
+        if (query.MaxPrice.HasValue) q = q.Where(p => p.Price <= query.MaxPrice.Value);
+        if (query.MinPerf.HasValue) q = q.Where(p => p.PerfScore >= query.MinPerf.Value);
 
-        q = sort switch
+        q = query.Sort switch
         {
             "price_asc" => q.OrderBy(p => p.Price),
             "price_desc" => q.OrderByDescending(p => p.Price),
@@ -56,20 +56,18 @@ public class ProductsController : ControllerBase
         };
 
         var total = await q.CountAsync();
-        page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, 100);
 
         var items = await q
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
             .ToListAsync();
 
         return Ok(new PagedResult<ProductDto>
         {
             Items = items.Select(p => p.ToDto()),
             Total = total,
-            Page = page,
-            PageSize = pageSize
+            Page = query.Page,
+            PageSize = query.PageSize
         });
     }
 
@@ -129,6 +127,11 @@ public class ProductsController : ControllerBase
         _db.Products.Add(p);
         await _db.SaveChangesAsync();
         await _db.Entry(p).Reference(x => x.Category).LoadAsync();
+        _logger.LogInformation(
+            "Produit créé. ProductId={ProductId} CategoryId={CategoryId} TraceId={TraceId}",
+            p.Id,
+            p.CategoryId,
+            HttpContext.TraceIdentifier);
         return CreatedAtAction(nameof(GetById), new { id = p.Id }, p.ToDto());
     }
 
@@ -153,6 +156,11 @@ public class ProductsController : ControllerBase
         p.CategoryId = dto.CategoryId;
         await _db.SaveChangesAsync();
         await _db.Entry(p).Reference(x => x.Category).LoadAsync();
+        _logger.LogInformation(
+            "Produit modifié. ProductId={ProductId} CategoryId={CategoryId} TraceId={TraceId}",
+            p.Id,
+            p.CategoryId,
+            HttpContext.TraceIdentifier);
         return Ok(p.ToDto());
     }
 
@@ -169,6 +177,10 @@ public class ProductsController : ControllerBase
 
         _db.Products.Remove(p);
         await _db.SaveChangesAsync();
+        _logger.LogInformation(
+            "Produit supprimé. ProductId={ProductId} TraceId={TraceId}",
+            id,
+            HttpContext.TraceIdentifier);
         return NoContent();
     }
 }

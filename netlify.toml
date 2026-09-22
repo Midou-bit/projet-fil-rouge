@@ -9,7 +9,20 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  # Mesure d'audience GoatCounter (gratuite, sans cookie). Renseigner le code de site pour
+  # Mesure d'audience GoatCounter optionnelle. Renseigner le code de site pour
   # l'activer, par exemple VITE_GOATCOUNTER_CODE = "frameforge". Absente ou vide, aucun
   # script de suivi n'est chargé et la bannière cookies n'a rien à activer.
   VITE_GOATCOUNTER_CODE = ""
+
+# Défense en profondeur appliquée par Netlify à l'interface et aux routes de la SPA.
+# La CSP autorise uniquement les tiers effectivement utilisés : polices Google, images du
+# catalogue, API/miniatures FreeToGame et GoatCounter optionnel après consentement.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; connect-src 'self' https://www.freetogame.com https://*.goatcounter.com; font-src 'self' https://fonts.gstatic.com; form-action 'self'; frame-ancestors 'none'; frame-src 'none'; img-src 'self' data: blob: https://www.freetogame.com https://*.freetogame.com https://i.ebayimg.com https://upload.wikimedia.org; manifest-src 'self'; object-src 'none'; script-src 'self' https://gc.zgo.at; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; upgrade-insecure-requests"
+    Permissions-Policy = "camera=(), geolocation=(), microphone=(), payment=(), usb=()"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"

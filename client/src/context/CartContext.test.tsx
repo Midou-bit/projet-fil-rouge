@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CartProvider, useCart } from './CartContext';
-import { AuthProvider } from './AuthContext';
+import { AuthProvider, useAuth } from './AuthContext';
 import type { Cart } from '../api/types';
 
 const emptyCart: Cart = { items: [], total: 0, itemCount: 0 };
@@ -26,6 +27,7 @@ vi.mock('../api/endpoints', () => ({
 
 // Imported after the mock so it resolves to the mocked module.
 const { cartApi } = await import('../api/endpoints');
+const { authApi } = await import('../api/endpoints');
 
 function TestConsumer() {
   const { cart, addItem, removeItem } = useCart();
@@ -40,14 +42,42 @@ function TestConsumer() {
   );
 }
 
+function IdentitySwitcher() {
+  const { cart } = useCart();
+  const { login } = useAuth();
+  return (
+    <div>
+      <span data-testid="race-count">{cart?.itemCount ?? 'null'}</span>
+      <button onClick={() => void login('b@frameforge.dev', 'long-enough-password')}>switch</button>
+    </div>
+  );
+}
+
 function renderCart() {
   sessionStorage.setItem('frameforge.session', JSON.stringify({ token: 'fake-token', email: 'a@b.dev', role: 'Client' }));
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <AuthProvider>
-      <CartProvider>
-        <TestConsumer />
-      </CartProvider>
-    </AuthProvider>,
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <CartProvider>
+          <TestConsumer />
+        </CartProvider>
+      </AuthProvider>
+    </QueryClientProvider>,
+  );
+}
+
+function renderIdentitySwitcher() {
+  sessionStorage.setItem('frameforge.session', JSON.stringify({ token: 'token-a', email: 'a@frameforge.dev', role: 'Client' }));
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <CartProvider>
+          <IdentitySwitcher />
+        </CartProvider>
+      </AuthProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -57,6 +87,7 @@ describe('CartContext', () => {
     vi.mocked(cartApi.get).mockReset().mockResolvedValue(emptyCart);
     vi.mocked(cartApi.add).mockReset();
     vi.mocked(cartApi.remove).mockReset();
+    vi.mocked(authApi.login).mockReset();
   });
 
   it('fetches the cart on mount for an authenticated user', async () => {
@@ -85,5 +116,25 @@ describe('CartContext', () => {
     // the caller (here caught explicitly by TestConsumer, exactly like ProductCard/CartPage do).
     await userEvent.click(screen.getByText('add'));
     await waitFor(() => expect(screen.getByTestId('error')).toHaveTextContent('Stock insuffisant'));
+  });
+
+  it('ignores a late cart response from the previous authenticated identity', async () => {
+    let resolveFirst!: (value: Cart) => void;
+    const firstRequest = new Promise<Cart>((resolve) => { resolveFirst = resolve; });
+    const secondIdentityCart: Cart = { ...cartWithOneItem, itemCount: 2 };
+    vi.mocked(cartApi.get)
+      .mockReset()
+      .mockImplementationOnce(() => firstRequest)
+      .mockResolvedValueOnce(secondIdentityCart);
+    vi.mocked(authApi.login).mockResolvedValue({ token: 'token-b', email: 'b@frameforge.dev', role: 'Client' });
+
+    renderIdentitySwitcher();
+    await waitFor(() => expect(cartApi.get).toHaveBeenCalledTimes(1));
+    await userEvent.click(screen.getByText('switch'));
+    await waitFor(() => expect(cartApi.get).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByTestId('race-count')).toHaveTextContent('2'));
+
+    await act(async () => { resolveFirst(cartWithOneItem); });
+    expect(screen.getByTestId('race-count')).toHaveTextContent('2');
   });
 });

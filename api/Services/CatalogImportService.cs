@@ -109,7 +109,7 @@ public class CatalogImportService
         return (gpu, cpu, ram);
     }
 
-    // Scaling identique au seed curaté (cohérence du moteur, cf. frameforge-scoring-tuning).
+    // Seuils propres à chaque couple résolution/FPS, identiques au principe du seed curaté.
     private static readonly (string Res, double Mul)[] ResMul = { ("1080p", 1.0), ("1440p", 1.1), ("4K", 1.25) };
     private static readonly (int Fps, double Mul)[] FpsMul = { (60, 1.0), (144, 1.4) };
 

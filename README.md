@@ -12,7 +12,7 @@ Projet de Master 1 — Développement Fullstack. Stack **React + Vite (TypeScrip
 
 ### Prérequis
 - **.NET 8 SDK** ([télécharger](https://dotnet.microsoft.com/download/dotnet/8.0))
-- **Node.js 18+** et npm
+- **Node.js 20.19+** et npm
 
 > Base de données : **SQLite** (zéro-install). Le fichier `api/frameforge.db` est créé
 > automatiquement au premier lancement, avec migration + **seed** (74 composants, 2 comptes démo).
@@ -52,7 +52,7 @@ Le front parle à l'API via un proxy Vite (`/api`) ; le CORS est aussi configur�
 | Admin  | `admin@frameforge.dev`  | `AdminFrame2026!`   |
 | Client | `client@frameforge.dev` | `ClientFrame2026!`  |
 
-> Politique de mot de passe conforme **CNIL** : 12 caractères minimum, avec majuscule, minuscule,
+> Politique de mot de passe renforcée : 12 caractères minimum, avec majuscule, minuscule,
 > chiffre et caractère spécial, couplée à un verrouillage de compte après 5 échecs.
 
 (Le bouton **Connexion** propose ces comptes en un clic.)
@@ -92,7 +92,7 @@ les composants gardent leur visuel de repli.
 ## 🧭 Les 4 entrées du site
 
 1. **Boutique** — catalogue par catégorie, recherche, filtres (prix/marque/perf), tri, pagination,
-   fiche produit, avis, panier, **paiement Stripe test**.
+   fiche produit, avis, panier, **checkout simulé ou Stripe test**.
 2. **Je veux jouer à X** (`/jouer`) — choisis un jeu + résolution + FPS → **build complet recommandé**,
    chiffré, ajoutable au panier en un clic.
 3. **Vérificateur** (`/verificateur`) — choisis ton CPU + GPU (catalogue) + un jeu → verdict immédiat
@@ -104,17 +104,22 @@ les composants gardent leur visuel de repli.
 
 ## 💳 Paiement Stripe
 
-Le checkout fonctionne en **deux modes** :
-- **Stripe test configuré** → vraie session Stripe Checkout (carte test `4242 4242 4242 4242`). La
+Le checkout fonctionne selon le réglage serveur explicite `Stripe:Mode` :
+- **`StripeTest` configuré avec une clé `sk_test_…`** → vraie session Stripe Checkout de test. La
   confirmation revérifie le statut du paiement auprès de Stripe (`Session.PaymentStatus`) avant de
   décrémenter le stock — le client ne peut pas se marquer « payé » sans avoir réellement payé.
-- **Sans clé Stripe** (par défaut) → **paiement simulé** (« mode démo ») pour rester démontrable
-  sans configuration. La commande passe en `Paid`, le stock est décrémenté, le panier vidé.
+- **`Simulation` (par défaut)** → validation de démonstration, sans appel Stripe ni transaction
+  financière. La création reste `Pending`, puis la page de retour appelle la confirmation serveur ;
+  elle seule peut passer la commande en `Paid`, décrémenter le stock et vider le panier.
+
+Une clé absente en mode `StripeTest` rend le paiement indisponible : une commande Stripe ne bascule
+jamais silencieusement en simulation. Aucun paiement Stripe test abouti n'est revendiqué dans ce dépôt.
 
 Le stock est re-validé à la confirmation (pas seulement à la création) et protégé par un token de
 concurrence : deux confirmations concurrentes sur le même produit ne peuvent pas survendre.
 
-Pour activer Stripe réel, renseigner la clé dans `api/appsettings.Development.json` (voir ci-dessous).
+Pour activer Stripe en environnement de test, configure `StripeTest` et la clé de test dans
+`api/appsettings.Development.json` (voir ci-dessous).
 
 ---
 
@@ -124,9 +129,10 @@ Les secrets ne sont **jamais committés** dans `api/appsettings.json` (qui ne co
 Les vraies valeurs vont dans **`api/appsettings.Development.json`** (gitignoré).
 
 1. Copier le template : `cp api/appsettings.Development.example.json api/appsettings.Development.json`
-2. Renseigner ce qui t'intéresse (tout est **optionnel**) :
+2. Renseigner ce qui t'intéresse :
    - `Jwt:Key` — clé de signature (≥ 32 car.). Absente → clé de dev de repli.
-   - `Stripe:SecretKey` / `PublishableKey` — clés test Stripe. Absentes → checkout en mode démo simulé.
+   - `Stripe:Mode` — `Simulation` (défaut) ou `StripeTest`.
+   - `Stripe:SecretKey` — clé secrète de test requise uniquement avec `StripeTest` ; jamais de clé live.
 
 > Alternative idiomatique .NET : `dotnet user-secrets` (les valeurs ne touchent jamais le disque du repo).
 
@@ -134,11 +140,18 @@ Les vraies valeurs vont dans **`api/appsettings.Development.json`** (gitignoré)
 
 ## ✅ Tests
 
-Tests unitaires du moteur de score (xUnit) :
+Suite backend xUnit (unitaires et intégration HTTP) :
 ```bash
-dotnet test        # depuis la racine ou api.Tests/
+dotnet test FrameForge.sln -c Release
 ```
-Couvre `ScoringService` : FPS estimés, facteur de résolution, bottleneck, qualité visuelle, verdicts.
+
+Suite frontend Vitest et couverture :
+
+```bash
+cd client
+npm test
+npm run test:coverage
+```
 
 ---
 
@@ -146,10 +159,13 @@ Couvre `ScoringService` : FPS estimés, facteur de résolution, bottleneck, qual
 
 Modèle d'**estimation assumé** (pas des benchmarks réels), dans `api/Services/ScoringService.cs` :
 ```
-fpsGpuBound = (gpuScore / RecoGpuScore) * TargetFps * resolutionFactor   (1080p=1.0, 1440p=0.7, 4K=0.45)
+fpsGpuBound = (gpuScore / RecoGpuScore) * TargetFps
 fpsCpuBound = (cpuScore / RecoCpuScore) * TargetFps
 fpsEstimé   = min(fpsGpuBound, fpsCpuBound)
 ```
+
+Les seuils de chaque exigence sont déjà propres à sa résolution et à sa cible FPS : aucun second
+coefficient de résolution n'est appliqué. La RAM participe aux verdicts minimum et recommandé.
 + pénalité de **bottleneck** si l'écart GPU/CPU dépasse 25 points, et 5 barres de stats
 (perf gaming, CPU, qualité visuelle, FPS, rapport qualité/prix).
 
@@ -168,12 +184,12 @@ fpsEstimé   = min(fpsGpuBound, fpsCpuBound)
 │   ├── Services/          # ScoringService, BuildService, CatalogImportService, TokenService, Mapping
 │   ├── Data/              # AppDbContext, migrations, DbSeeder, ComponentImages
 │   └── Program.cs
-├── api.Tests/             # tests xUnit (ScoringService)
+├── api.Tests/             # tests xUnit unitaires et intégration HTTP
 └── client/                # React + Vite + TypeScript
     └── src/
         ├── api/           # axios + types + endpoints
         ├── components/    # StatBar, StatPanel, ProductCard, MediaImage, Navbar, Toast…
-        ├── context/       # AuthContext (JWT en mémoire), CartContext
+        ├── context/       # AuthContext (sessionStorage), CartContext
         ├── pages/         # Home, Shop, ProductDetail, Games, Builder, Checker, PlayWhat…
         │   └── admin/     # Dashboard, Products, Categories, Orders, Support
         └── lib/
@@ -199,6 +215,8 @@ POST   /api/build/calc   (builder temps réel)
 POST   /api/reviews                                        [Auth]
 POST   /api/support | GET /api/admin/support              [Admin sur lecture]
 GET    /api/admin/stats                                    [Admin]
+GET    /api/account/export | DELETE /api/account           [Auth]
+GET    /health                                             [Public, état minimal API/SQLite]
 ```
 
 ---

@@ -54,7 +54,7 @@ export default function Login() {
               onChange={(e) => { setEmail(e.target.value); setError(null); }} autoComplete="email" />
           </div>
           <div>
-            <label>Mot de passe</label>
+            <label htmlFor="login-password">Mot de passe</label>
             <div style={{ position: 'relative' }}>
               <input id="login-password" type={showPassword ? 'text' : 'password'} required
                 minLength={mode === 'register' ? 12 : undefined} value={password}

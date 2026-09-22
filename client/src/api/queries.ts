@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   adminApi, categoriesApi, gamesApi, ordersApi, productsApi, supportApi, type ProductQuery,
 } from './endpoints';
+import { freeToGameApi } from './freeToGame';
 
 /** Clés de cache centralisées (sert aussi aux invalidations après mutation). */
 export const qk = {
@@ -11,6 +12,7 @@ export const qk = {
   categories: ['categories'] as const,
   brands: ['brands'] as const,
   games: ['games'] as const,
+  freeToGameDiscoveries: ['external', 'free-to-game', 'popular'] as const,
   game: (id: number) => ['game', id] as const,
   build: (id: number, res: string, fps: number) => ['build', id, res, fps] as const,
   adminStats: ['admin', 'stats'] as const,
@@ -44,6 +46,18 @@ export const useGames = () =>
     queryFn: gamesApi.list,
     staleTime: 5 * 60_000,
     refetchInterval: (query) => (query.state.data?.length ? false : 2000),
+  });
+
+// Donnees publiques chargees directement par le navigateur depuis FreeToGame.
+// Le cache long et l'unique retry limitent les appels a ce service tiers.
+export const useFreeToGameDiscoveries = () =>
+  useQuery({
+    queryKey: qk.freeToGameDiscoveries,
+    queryFn: ({ signal }) => freeToGameApi.listPopular(signal),
+    staleTime: 30 * 60_000,
+    gcTime: 60 * 60_000,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
 export const useGameBuild = (id: number | null, res: string, fps: number) =>

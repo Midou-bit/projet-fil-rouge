@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -17,6 +17,15 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [open]);
+
   const count = cart?.itemCount ?? 0;
 
   return (
@@ -25,14 +34,20 @@ export default function Navbar() {
       background: 'rgba(10,14,20,0.85)', backdropFilter: 'blur(10px)',
       borderBottom: '1px solid var(--border)',
     }}>
-      <nav className="container row between" style={{ height: 64 }}>
-        <Link to="/" className="glitch" style={{ fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '1.35rem', color: 'var(--text)', letterSpacing: '0.06em' }}>
+      <nav className="container row between" aria-label="Navigation principale" style={{ height: 64 }}>
+        <Link to="/" onClick={() => setOpen(false)} className="glitch"
+          aria-label="FrameForge, accueil"
+          style={{ fontFamily: 'var(--font-title)', fontWeight: 700, fontSize: '1.35rem', color: 'var(--text)', letterSpacing: '0.06em' }}>
           FRAME<span style={{ color: 'var(--accent-cyan)' }}>FORGE</span>
         </Link>
 
-        <button className="btn btn-sm btn-ghost mobile-only" onClick={() => setOpen((o) => !o)} aria-label="Menu">☰</button>
+        <button className="btn btn-sm btn-ghost mobile-only" onClick={() => setOpen((o) => !o)}
+          aria-label={open ? 'Fermer le menu principal' : 'Ouvrir le menu principal'}
+          aria-expanded={open} aria-controls="primary-navigation">
+          <span aria-hidden="true">{open ? '✕' : '☰'}</span>
+        </button>
 
-        <div className={`nav-links ${open ? 'open' : ''}`}>
+        <div id="primary-navigation" className={`nav-links ${open ? 'open' : ''}`}>
           {links.map((l) => (
             <NavLink key={l.to} to={l.to} onClick={() => setOpen(false)}
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
@@ -57,7 +72,7 @@ export default function Navbar() {
             <div className="row" style={{ gap: '0.4rem' }}>
               {isAdmin && <Link to="/admin" className="btn btn-sm">Admin</Link>}
               <Link to="/commandes" className="btn btn-sm btn-ghost" title={email ?? ''}>Compte</Link>
-              <button className="btn btn-sm btn-ghost" onClick={() => { logout(); navigate('/'); }}>Sortir</button>
+              <button className="btn btn-sm btn-ghost" onClick={() => { setOpen(false); logout(); navigate('/'); }}>Sortir</button>
             </div>
           ) : (
             <Link to="/login" className="btn btn-sm">Connexion</Link>

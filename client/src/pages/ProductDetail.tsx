@@ -13,7 +13,9 @@ import MediaImage from '../components/MediaImage';
 import { useSeo } from '../lib/seo';
 
 function Stars({ value }: { value: number }) {
-  return <span style={{ color: 'var(--accent-yellow)', letterSpacing: 2 }}>{'★'.repeat(Math.round(value))}<span className="muted">{'★'.repeat(5 - Math.round(value))}</span></span>;
+  return <span aria-label={`${value} sur 5`} style={{ color: 'var(--accent-yellow)', letterSpacing: 2 }}>
+    <span aria-hidden="true">{'★'.repeat(Math.round(value))}<span className="muted">{'★'.repeat(5 - Math.round(value))}</span></span>
+  </span>;
 }
 
 export default function ProductDetail() {
@@ -83,7 +85,12 @@ export default function ProductDetail() {
       </div>
     );
   }
-  if (isLoading || !product) return <div className="container center" style={{ padding: '3rem' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>;
+  if (isLoading || !product) return (
+    <div className="container center" role="status" aria-live="polite" style={{ padding: '3rem' }}>
+      <div className="spinner" aria-hidden="true" style={{ margin: '0 auto' }} />
+      <span className="sr-only">Chargement du produit…</span>
+    </div>
+  );
 
   const specs = parseSpecs(product.specs);
 
@@ -114,7 +121,8 @@ export default function ProductDetail() {
             </span>
           </div>
           <div className="row" style={{ gap: '0.6rem' }}>
-            <input type="number" min={1} max={product.stock} value={qty}
+            <label htmlFor="product-quantity" className="sr-only">Quantité</label>
+            <input id="product-quantity" type="number" min={1} max={product.stock} value={qty}
               onChange={(e) => setQty(Math.max(1, Number(e.target.value)))} style={{ width: 90 }} />
             <button className="btn btn-action" disabled={product.stock <= 0} onClick={add}>🛒 Ajouter au panier</button>
           </div>
@@ -147,12 +155,13 @@ export default function ProductDetail() {
         {isAuthenticated && (
           <form onSubmit={submitReview} className="surface" style={{ padding: '1rem', marginBottom: '1rem', display: 'grid', gap: '0.6rem' }}>
             <div className="row" style={{ gap: '0.5rem' }}>
-              <label style={{ margin: 0 }}>Note</label>
-              <select value={rating} onChange={(e) => setRating(Number(e.target.value))} style={{ width: 110 }}>
+              <label htmlFor="review-rating" style={{ margin: 0 }}>Note</label>
+              <select id="review-rating" value={rating} onChange={(e) => setRating(Number(e.target.value))} style={{ width: 110 }}>
                 {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} ★</option>)}
               </select>
             </div>
-            <textarea rows={2} required minLength={1} placeholder="Ton retour sur ce composant…" value={comment} onChange={(e) => setComment(e.target.value)} />
+            <label htmlFor="review-comment" className="sr-only">Ton avis</label>
+            <textarea id="review-comment" rows={2} required minLength={1} placeholder="Ton retour sur ce composant…" value={comment} onChange={(e) => setComment(e.target.value)} />
             <button className="btn btn-cyan btn-sm" style={{ justifySelf: 'start' }} disabled={!comment.trim()}>Publier mon avis</button>
           </form>
         )}

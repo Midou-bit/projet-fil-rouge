@@ -10,21 +10,18 @@ public class ScoringService
 {
     public const int BottleneckGap = 25; // écart GPU/CPU au-delà duquel on pénalise
 
-    public static double ResolutionFactor(string resolution) => resolution switch
-    {
-        "1080p" => 1.0,
-        "1440p" => 0.7,
-        "4K" => 0.45,
-        _ => 1.0
-    };
-
-    /// <summary>FPS estimés : le composant le plus faible limite (min des deux bornes).</summary>
+    /// <summary>
+    /// FPS estimés : le composant le plus faible limite (min des deux bornes).
+    /// Les scores recommandés du requirement sont déjà propres à sa résolution et à sa cible FPS :
+    /// on ne réapplique donc aucun facteur de résolution ici.
+    /// </summary>
     public int EstimateFps(int gpuScore, int cpuScore, GameRequirement req)
     {
-        var resFactor = ResolutionFactor(req.Resolution);
-        var fpsGpuBound = (double)gpuScore / req.RecoGpuScore * req.TargetFps * resFactor;
-        var fpsCpuBound = (double)cpuScore / req.RecoCpuScore * req.TargetFps;
-        return (int)Math.Round(Math.Min(fpsGpuBound, fpsCpuBound));
+        var recoGpu = Math.Max(1, req.RecoGpuScore);
+        var recoCpu = Math.Max(1, req.RecoCpuScore);
+        var fpsGpuBound = (double)gpuScore / recoGpu * req.TargetFps;
+        var fpsCpuBound = (double)cpuScore / recoCpu * req.TargetFps;
+        return (int)Math.Round(Math.Min(fpsGpuBound, fpsCpuBound), MidpointRounding.AwayFromZero);
     }
 
     /// <summary>Malus 0-100 quand GPU et CPU sont trop éloignés (CPU faible bride le GPU).</summary>
@@ -33,7 +30,7 @@ public class ScoringService
         var gap = Math.Abs(gpuScore - cpuScore);
         if (gap <= BottleneckGap) return 0;
         // pénalité progressive : chaque point au-delà du seuil coûte ~0.6
-        return (int)Math.Round((gap - BottleneckGap) * 0.6);
+        return (int)Math.Round((gap - BottleneckGap) * 0.6, MidpointRounding.AwayFromZero);
     }
 
     /// <summary>Performance gaming globale : 70% GPU + 30% CPU, moins le bottleneck.</summary>
@@ -41,7 +38,7 @@ public class ScoringService
     {
         var weighted = gpuScore * 0.7 + cpuScore * 0.3;
         var score = weighted - BottleneckPenalty(gpuScore, cpuScore);
-        return Math.Clamp((int)Math.Round(score), 0, 100);
+        return Math.Clamp((int)Math.Round(score, MidpointRounding.AwayFromZero), 0, 100);
     }
 
     /// <summary>Qualité visuelle atteignable selon la marge vs RecoGpuScore.</summary>
@@ -66,7 +63,9 @@ public class ScoringService
         var fps = EstimateFps(gpuScore, cpuScore, req);
         var gaming = GamingPerformance(gpuScore, cpuScore);
         var meetsMin = gpuScore >= req.MinGpuScore && cpuScore >= req.MinCpuScore && ramGb >= req.MinRamGb;
-        var meetsReco = gpuScore >= req.RecoGpuScore && cpuScore >= req.RecoCpuScore;
+        // Le modèle ne distingue pas une RAM minimale d'une RAM recommandée : l'unique seuil
+        // RAM fait donc partie des deux verdicts, afin d'éviter un "recommandé" incohérent.
+        var meetsReco = gpuScore >= req.RecoGpuScore && cpuScore >= req.RecoCpuScore && ramGb >= req.MinRamGb;
 
         string verdict = meetsReco ? "Ça tourne (recommandé)"
             : meetsMin ? "Ça tourne (minimum)"

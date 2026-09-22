@@ -90,42 +90,42 @@ export default function Shop() {
         {/* Barre de filtres */}
         <div className="surface" style={{ padding: '1rem', display: 'grid', gap: '0.8rem', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', alignItems: 'end' }}>
           <div style={{ gridColumn: '1 / -1' }}>
-            <label>Recherche</label>
-            <input placeholder="RTX, Ryzen, boîtier…" value={searchInput}
+            <label htmlFor="shop-search">Recherche</label>
+            <input id="shop-search" type="search" placeholder="RTX, Ryzen, boîtier…" value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)} />
           </div>
           <div>
-            <label>Catégorie</label>
-            <select value={query.category ?? ''} onChange={(e) => update({ category: e.target.value || undefined })}>
+            <label htmlFor="shop-category">Catégorie</label>
+            <select id="shop-category" value={query.category ?? ''} onChange={(e) => update({ category: e.target.value || undefined })}>
               <option value="">Toutes</option>
               {cats.map((c) => <option key={c.id} value={c.slug}>{c.name} ({c.productCount})</option>)}
             </select>
           </div>
           <div>
-            <label>Marque</label>
-            <select value={query.brand ?? ''} onChange={(e) => update({ brand: e.target.value || undefined })}>
+            <label htmlFor="shop-brand">Marque</label>
+            <select id="shop-brand" value={query.brand ?? ''} onChange={(e) => update({ brand: e.target.value || undefined })}>
               <option value="">Toutes</option>
               {brands.map((b) => <option key={b} value={b}>{b}</option>)}
             </select>
           </div>
           <div>
-            <label>Prix min (€)</label>
-            <input type="number" min={0} value={minPriceInput}
+            <label htmlFor="shop-min-price">Prix min (€)</label>
+            <input id="shop-min-price" type="number" min={0} value={minPriceInput}
               onChange={(e) => setMinPriceInput(e.target.value)} />
           </div>
           <div>
-            <label>Prix max (€)</label>
-            <input type="number" min={0} value={maxPriceInput}
+            <label htmlFor="shop-max-price">Prix max (€)</label>
+            <input id="shop-max-price" type="number" min={0} value={maxPriceInput}
               onChange={(e) => setMaxPriceInput(e.target.value)} />
           </div>
           <div>
-            <label>Perf min</label>
-            <input type="number" min={0} max={100} value={minPerfInput}
+            <label htmlFor="shop-min-perf">Performance minimale</label>
+            <input id="shop-min-perf" type="number" min={0} max={100} value={minPerfInput}
               onChange={(e) => setMinPerfInput(e.target.value)} />
           </div>
           <div>
-            <label>Trier par</label>
-            <select value={query.sort} onChange={(e) => update({ sort: e.target.value })}>
+            <label htmlFor="shop-sort">Trier par</label>
+            <select id="shop-sort" value={query.sort} onChange={(e) => update({ sort: e.target.value })}>
               {SORTS.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}
             </select>
           </div>
@@ -134,21 +134,24 @@ export default function Shop() {
         {/* Résultats */}
         <div>
           {loading ? (
-            <div className="center" style={{ padding: '3rem' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
+            <div className="center" role="status" aria-live="polite" style={{ padding: '3rem' }}>
+              <div className="spinner" aria-hidden="true" style={{ margin: '0 auto' }} />
+              <span className="sr-only">Chargement des produits…</span>
+            </div>
           ) : !data || data.items.length === 0 ? (
             <p className="muted center" style={{ padding: '3rem' }}>Aucun produit ne correspond à ces filtres.</p>
           ) : (
             <>
-              <p className="muted" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>{data.total} résultat(s)</p>
+              <p className="muted" aria-live="polite" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>{data.total} résultat(s)</p>
               <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
                 {data.items.map((p) => <ProductCard key={p.id} product={p} />)}
               </div>
               {data.totalPages > 1 && (
-                <div className="row center" style={{ justifyContent: 'center', marginTop: '1.5rem', gap: '0.5rem' }}>
+                <nav className="row center" aria-label="Pagination des produits" style={{ justifyContent: 'center', marginTop: '1.5rem', gap: '0.5rem' }}>
                   <button className="btn btn-sm" disabled={data.page <= 1} onClick={() => update({ page: String(data.page - 1) })}>← Préc.</button>
                   <span className="badge">Page {data.page} / {data.totalPages}</span>
                   <button className="btn btn-sm" disabled={data.page >= data.totalPages} onClick={() => update({ page: String(data.page + 1) })}>Suiv. →</button>
-                </div>
+                </nav>
               )}
             </>
           )}

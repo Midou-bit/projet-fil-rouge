@@ -8,12 +8,6 @@ import type { GameRequirement, ScoreSummary } from '../api/types';
 
 const BOTTLENECK_GAP = 25;
 
-export function resolutionFactor(resolution: string): number {
-  if (resolution === '1440p') return 0.7;
-  if (resolution === '4K') return 0.45;
-  return 1.0; // 1080p par défaut
-}
-
 export function bottleneckPenalty(gpuScore: number, cpuScore: number): number {
   const gap = Math.abs(gpuScore - cpuScore);
   if (gap <= BOTTLENECK_GAP) return 0;
@@ -27,9 +21,10 @@ export function gamingPerformance(gpuScore: number, cpuScore: number): number {
 }
 
 export function estimateFps(gpuScore: number, cpuScore: number, req: GameRequirement): number {
-  const resFactor = resolutionFactor(req.resolution);
-  const fpsGpuBound = (gpuScore / req.recoGpuScore) * req.targetFps * resFactor;
-  const fpsCpuBound = (cpuScore / req.recoCpuScore) * req.targetFps;
+  // Les seuils de chaque requirement sont déjà propres à sa résolution et sa cible FPS.
+  // Réappliquer ici un coefficient de résolution ferait compter la difficulté deux fois.
+  const fpsGpuBound = (gpuScore / Math.max(1, req.recoGpuScore)) * req.targetFps;
+  const fpsCpuBound = (cpuScore / Math.max(1, req.recoCpuScore)) * req.targetFps;
   return Math.round(Math.min(fpsGpuBound, fpsCpuBound));
 }
 
@@ -43,7 +38,7 @@ export function visualQuality(gpuScore: number, req: GameRequirement): string {
 /** Verdict complet pour un couple (GPU, CPU, RAM) face aux prérequis d'un jeu. */
 export function evaluate(gpuScore: number, cpuScore: number, ramGb: number, req: GameRequirement): ScoreSummary {
   const meetsMinimum = gpuScore >= req.minGpuScore && cpuScore >= req.minCpuScore && ramGb >= req.minRamGb;
-  const meetsRecommended = gpuScore >= req.recoGpuScore && cpuScore >= req.recoCpuScore;
+  const meetsRecommended = gpuScore >= req.recoGpuScore && cpuScore >= req.recoCpuScore && ramGb >= req.minRamGb;
   const verdict = meetsRecommended ? 'Ça tourne (recommandé)'
     : meetsMinimum ? 'Ça tourne (minimum)'
     : 'Trop faible';

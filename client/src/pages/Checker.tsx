@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { engineApi } from '../api/endpoints';
@@ -28,7 +28,9 @@ function requirementFor(game: Game, resolution: string, targetFps: number): Game
 
 /** Composant catalogue le moins cher atteignant au moins `minScore` (pour les upgrades conseillés). */
 function cheapestAtLeast(list: Product[], minScore: number): Product | null {
-  return list.filter((p) => p.perfScore >= minScore).sort((a, b) => a.price - b.price)[0] ?? null;
+  return list
+    .filter((product) => product.stock > 0 && product.perfScore >= minScore)
+    .sort((a, b) => a.price - b.price)[0] ?? null;
 }
 
 function UpgradeCard({ label, product }: { label: string; product: Product }) {
@@ -52,8 +54,8 @@ export default function Checker() {
   const { data: gpuPage } = useProducts({ category: 'gpu', pageSize: 50, sort: 'perf' });
   const { data: cpuPage } = useProducts({ category: 'cpu', pageSize: 50, sort: 'perf' });
   const { data: games = [] } = useGames();
-  const gpus = gpuPage?.items ?? [];
-  const cpus = cpuPage?.items ?? [];
+  const gpus = useMemo(() => gpuPage?.items ?? [], [gpuPage?.items]);
+  const cpus = useMemo(() => cpuPage?.items ?? [], [cpuPage?.items]);
   const [gpuId, setGpuId] = useState<number | null>(null);
   const [cpuId, setCpuId] = useState<number | null>(null);
   const [gameId, setGameId] = useState<number | null>(null);
@@ -84,10 +86,13 @@ export default function Checker() {
     const pc = new URLSearchParams(location.hash.slice(1)).get('pc');
     if (pc && gpus.length && cpus.length && gameId != null) {
       autoRan.current = true;
+      // Le fragment peut révéler une configuration matérielle s'il reste dans un lien copié ou
+      // l'historique visible : le retirer dès sa prise en compte, sans ajouter d'entrée d'historique.
+      window.history.replaceState(window.history.state, '', `${location.pathname}${location.search}`);
       analyzeCode(pc);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.hash, gpus, cpus, gameId]);
+  }, [location.hash, location.pathname, location.search, gpus, cpus, gameId]);
 
   // Verdict pour du matériel DÉTECTÉ (catalogue ou non) — calculé côté client, live selon jeu/réso/fps.
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -238,43 +243,45 @@ export default function Checker() {
 
       <div className="surface" style={{ padding: '1.2rem', display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', alignItems: 'end' }}>
         <div>
-          <label>Carte graphique</label>
-          <select value={gpuId ?? ''} onChange={(e) => setGpuId(Number(e.target.value))}>
+          <label htmlFor="checker-gpu">Carte graphique</label>
+          <select id="checker-gpu" value={gpuId ?? ''} onChange={(e) => setGpuId(Number(e.target.value))}>
             {gpus.map((g) => <option key={g.id} value={g.id}>{g.name} ({g.perfScore})</option>)}
           </select>
         </div>
         <div>
-          <label>Processeur</label>
-          <select value={cpuId ?? ''} onChange={(e) => setCpuId(Number(e.target.value))}>
+          <label htmlFor="checker-cpu">Processeur</label>
+          <select id="checker-cpu" value={cpuId ?? ''} onChange={(e) => setCpuId(Number(e.target.value))}>
             {cpus.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.perfScore})</option>)}
           </select>
         </div>
         <div>
-          <label>RAM (Go)</label>
-          <select value={ram} onChange={(e) => setRam(Number(e.target.value))}>
+          <label htmlFor="checker-ram">RAM (Go)</label>
+          <select id="checker-ram" value={ram} onChange={(e) => setRam(Number(e.target.value))}>
             {[8, 16, 32, 64].map((r) => <option key={r} value={r}>{r} Go</option>)}
           </select>
         </div>
         <div>
-          <label>Jeu</label>
+          <label htmlFor="checker-game">Jeu</label>
           {games.length === 0 ? (
             <p className="muted" style={{ margin: '0.4rem 0 0', fontSize: '0.85rem' }}>Chargement…</p>
           ) : (
-            <select value={gameId ?? ''} onChange={(e) => setGameId(Number(e.target.value))}>
+            <select id="checker-game" value={gameId ?? ''} onChange={(e) => setGameId(Number(e.target.value))}>
               {games.map((g) => <option key={g.id} value={g.id}>{g.title}</option>)}
             </select>
           )}
         </div>
         <div>
-          <label>Résolution</label>
-          <div className="row" style={{ gap: '0.3rem' }}>
-            {RESOS.map((r) => <button key={r} className={`btn btn-sm ${reso === r ? 'btn-cyan' : 'btn-ghost'}`} onClick={() => setReso(r)}>{r}</button>)}
+          <span className="control-label" id="checker-resolution-label">Résolution</span>
+          <div className="row" role="group" aria-labelledby="checker-resolution-label" style={{ gap: '0.3rem' }}>
+            {RESOS.map((r) => <button type="button" key={r} aria-pressed={reso === r}
+              className={`btn btn-sm ${reso === r ? 'btn-cyan' : 'btn-ghost'}`} onClick={() => setReso(r)}>{r}</button>)}
           </div>
         </div>
         <div>
-          <label>FPS visés</label>
-          <div className="row" style={{ gap: '0.3rem' }}>
-            {FPSES.map((f) => <button key={f} className={`btn btn-sm ${fps === f ? 'btn-cyan' : 'btn-ghost'}`} onClick={() => setFps(f)}>{f}</button>)}
+          <span className="control-label" id="checker-fps-label">FPS visés</span>
+          <div className="row" role="group" aria-labelledby="checker-fps-label" style={{ gap: '0.3rem' }}>
+            {FPSES.map((f) => <button type="button" key={f} aria-pressed={fps === f}
+              className={`btn btn-sm ${fps === f ? 'btn-cyan' : 'btn-ghost'}`} onClick={() => setFps(f)}>{f}</button>)}
           </div>
         </div>
         <button className="btn btn-action" style={{ gridColumn: '1 / -1' }} disabled={busy} onClick={run}>
@@ -304,10 +311,18 @@ export default function Checker() {
                 {result.suggestedGpuUpgrade && <UpgradeCard label="Carte graphique" product={result.suggestedGpuUpgrade} />}
                 {result.suggestedCpuUpgrade && <UpgradeCard label="Processeur" product={result.suggestedCpuUpgrade} />}
               </>
-            ) : (
+            ) : result.score.meetsRecommended ? (
               <div className="surface center" style={{ padding: '1.5rem' }}>
                 <div style={{ fontSize: '2rem' }}>🎉</div>
                 <p className="muted">Ton matériel atteint déjà le niveau recommandé. Aucun upgrade nécessaire !</p>
+              </div>
+            ) : (
+              <div className="surface center" style={{ padding: '1.5rem' }}>
+                <div style={{ fontSize: '2rem' }}>⚠️</div>
+                <p style={{ marginBottom: '0.4rem' }}><strong>Le niveau recommandé n’est pas encore atteint.</strong></p>
+                <p className="muted" style={{ margin: 0 }}>
+                  Aucun upgrade CPU/GPU correspondant n’est disponible dans le catalogue. Vérifie aussi la RAM sélectionnée et les prérequis du jeu.
+                </p>
               </div>
             )}
           </div>

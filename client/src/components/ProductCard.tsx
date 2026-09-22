@@ -48,7 +48,8 @@ export default function ProductCard({ product }: { product: Product }) {
       </Link>
       <div className="row between" style={{ padding: '0 0.9rem 0.9rem', marginTop: 'auto' }}>
         <span className="price" style={{ fontSize: '1.15rem' }}>{euro(product.price)}</span>
-        <button className="btn btn-action btn-sm" onClick={add} disabled={out}>
+        <button className="btn btn-action btn-sm" onClick={add} disabled={out}
+          aria-label={out ? `${product.name} indisponible` : `Ajouter ${product.name} au panier`}>
           {out ? 'Indispo' : 'Ajouter'}
         </button>
       </div>

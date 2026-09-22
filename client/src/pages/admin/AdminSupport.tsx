@@ -21,7 +21,10 @@ export default function AdminSupport() {
   return (
     <div className="stack">
       {isLoading ? (
-        <div className="center" style={{ padding: '2rem' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
+        <div className="center" role="status" aria-live="polite" style={{ padding: '2rem' }}>
+          <div className="spinner" aria-hidden="true" style={{ margin: '0 auto' }} />
+          <span className="sr-only">Chargement des messages support…</span>
+        </div>
       ) : msgs.length === 0 && <p className="muted">Aucun message.</p>}
       {msgs.map((m) => (
         <div key={m.id} className="surface" style={{ padding: '1rem' }}>

@@ -16,15 +16,18 @@ export default function AdminLayout() {
         <h1 style={{ margin: 0 }}>⚙️ Administration</h1>
         <span className="badge badge-cyan">Espace admin</span>
       </div>
-      <div className="row wrap" style={{ gap: '0.4rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.6rem', marginBottom: '1.4rem' }}>
+      <nav className="row wrap" aria-label="Navigation de l'administration" style={{ gap: '0.4rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.6rem', marginBottom: '1.4rem' }}>
         {tabs.map((t) => (
           <NavLink key={t.to} to={t.to} end={t.end}
             className={({ isActive }) => `btn btn-sm ${isActive ? 'btn-cyan' : 'btn-ghost'}`}>
             {t.label}
           </NavLink>
         ))}
-      </div>
-      <Suspense fallback={<div className="center" style={{ padding: '2rem' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>}>
+      </nav>
+      <Suspense fallback={<div className="center" role="status" aria-live="polite" style={{ padding: '2rem' }}>
+        <div className="spinner" aria-hidden="true" style={{ margin: '0 auto' }} />
+        <span className="sr-only">Chargement de la page d'administration…</span>
+      </div>}>
         <Outlet />
       </Suspense>
     </div>

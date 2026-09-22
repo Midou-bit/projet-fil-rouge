@@ -55,7 +55,8 @@ export default function AdminProducts() {
   return (
     <div>
       <div className="row between wrap" style={{ marginBottom: '1rem' }}>
-        <input placeholder="Rechercher…" style={{ maxWidth: 280 }} value={search} onChange={(e) => setSearch(e.target.value)} />
+        <label htmlFor="admin-product-search" className="sr-only">Rechercher un produit</label>
+        <input id="admin-product-search" type="search" placeholder="Rechercher…" style={{ maxWidth: 280 }} value={search} onChange={(e) => setSearch(e.target.value)} />
         <button className="btn btn-action" onClick={startCreate}>+ Nouveau produit</button>
       </div>
 
@@ -63,7 +64,7 @@ export default function AdminProducts() {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem', minWidth: 640 }}>
           <thead>
             <tr className="muted" style={{ textAlign: 'left', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
-              <th style={{ padding: '0.6rem' }}>Nom</th><th>Catégorie</th><th>Prix</th><th>Stock</th><th>Perf</th><th></th>
+              <th scope="col" style={{ padding: '0.6rem' }}>Nom</th><th scope="col">Catégorie</th><th scope="col">Prix</th><th scope="col">Stock</th><th scope="col">Perf</th><th scope="col"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
@@ -87,24 +88,25 @@ export default function AdminProducts() {
       {editing && (
         <div onClick={() => setEditing(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'grid', placeItems: 'center', zIndex: 200, padding: '1rem' }}>
           <form onClick={(e) => e.stopPropagation()} onSubmit={save} className="surface stack"
+            role="dialog" aria-modal="true" aria-labelledby="product-dialog-title"
             style={{ padding: '1.5rem', width: 'min(560px, 95vw)', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h2 style={{ marginTop: 0 }}>{editing.id ? 'Modifier' : 'Nouveau'} produit</h2>
+            <h2 id="product-dialog-title" style={{ marginTop: 0 }}>{editing.id ? 'Modifier' : 'Nouveau'} produit</h2>
             <div className="grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-              <div><label>Nom</label><input required value={editing.name ?? ''} onChange={(e) => setEditing({ ...editing, name: e.target.value })} /></div>
-              <div><label>Marque</label><input required value={editing.brand ?? ''} onChange={(e) => setEditing({ ...editing, brand: e.target.value })} /></div>
-              <div><label>Prix (€)</label><input type="number" step="0.01" min="0" value={editing.price ?? 0} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} /></div>
-              <div><label>Stock</label><input type="number" min="0" value={editing.stock ?? 0} onChange={(e) => setEditing({ ...editing, stock: Number(e.target.value) })} /></div>
-              <div><label>PerfScore (0-100)</label><input type="number" min="0" max="100" value={editing.perfScore ?? 0} onChange={(e) => setEditing({ ...editing, perfScore: Number(e.target.value) })} /></div>
+              <div><label htmlFor="product-name">Nom</label><input id="product-name" required value={editing.name ?? ''} onChange={(e) => setEditing({ ...editing, name: e.target.value })} /></div>
+              <div><label htmlFor="product-brand">Marque</label><input id="product-brand" required value={editing.brand ?? ''} onChange={(e) => setEditing({ ...editing, brand: e.target.value })} /></div>
+              <div><label htmlFor="product-price">Prix (€)</label><input id="product-price" type="number" step="0.01" min="0.01" required value={editing.price ?? 0} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} /></div>
+              <div><label htmlFor="product-stock">Stock</label><input id="product-stock" type="number" min="0" required value={editing.stock ?? 0} onChange={(e) => setEditing({ ...editing, stock: Number(e.target.value) })} /></div>
+              <div><label htmlFor="product-score">PerfScore (0-100)</label><input id="product-score" type="number" min="0" max="100" required value={editing.perfScore ?? 0} onChange={(e) => setEditing({ ...editing, perfScore: Number(e.target.value) })} /></div>
               <div>
-                <label>Catégorie</label>
-                <select value={editing.categoryId ?? ''} onChange={(e) => setEditing({ ...editing, categoryId: Number(e.target.value) })}>
+                <label htmlFor="product-category">Catégorie</label>
+                <select id="product-category" required value={editing.categoryId ?? ''} onChange={(e) => setEditing({ ...editing, categoryId: Number(e.target.value) })}>
                   {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
             </div>
-            <div><label>Image URL</label><input value={editing.imageUrl ?? ''} onChange={(e) => setEditing({ ...editing, imageUrl: e.target.value })} /></div>
-            <div><label>Description</label><textarea rows={2} value={editing.description ?? ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} /></div>
-            <div><label>Specs (JSON)</label><input className="mono" placeholder='{"Vram":"16 Go"}' value={editing.specs ?? ''} onChange={(e) => setEditing({ ...editing, specs: e.target.value })} /></div>
+            <div><label htmlFor="product-image">Image URL</label><input id="product-image" type="url" value={editing.imageUrl ?? ''} onChange={(e) => setEditing({ ...editing, imageUrl: e.target.value })} /></div>
+            <div><label htmlFor="product-description">Description</label><textarea id="product-description" required rows={2} value={editing.description ?? ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} /></div>
+            <div><label htmlFor="product-specs">Specs (JSON)</label><input id="product-specs" className="mono" placeholder='{"Vram":"16 Go"}' value={editing.specs ?? ''} onChange={(e) => setEditing({ ...editing, specs: e.target.value })} /></div>
             <div className="row" style={{ justifyContent: 'flex-end', gap: '0.5rem' }}>
               <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>Annuler</button>
               <button className="btn btn-action">Enregistrer</button>

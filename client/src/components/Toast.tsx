@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 
 type ToastTone = 'success' | 'error' | 'info';
@@ -11,6 +11,7 @@ const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const reduceMotion = useReducedMotion();
 
   const notify = useCallback((message: string, tone: ToastTone = 'info') => {
     const id = Date.now() + Math.random();
@@ -30,9 +31,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <motion.div
               key={t.id}
               role={t.tone === 'error' ? 'alert' : 'status'}
-              initial={{ opacity: 0, x: 40 }}
+              initial={reduceMotion ? false : { opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 40 }}
+              exit={reduceMotion ? undefined : { opacity: 0, x: 40 }}
+              transition={reduceMotion ? { duration: 0 } : undefined}
               className="surface"
               style={{
                 padding: '0.7rem 1rem',

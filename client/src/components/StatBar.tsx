@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 interface StatBarProps {
   label: string;
@@ -12,6 +12,7 @@ interface StatBarProps {
 
 /** Barre de stat animée façon Call of Duty : la largeur s'anime à chaque changement. */
 export default function StatBar({ label, display, percent, tone = 'cyan', icon }: StatBarProps) {
+  const reduceMotion = useReducedMotion();
   const clamped = Math.max(0, Math.min(100, percent));
   const toneClass = tone === 'danger' ? 'is-danger' : tone === 'warning' ? 'is-warning' : '';
   return (
@@ -23,9 +24,9 @@ export default function StatBar({ label, display, percent, tone = 'cyan', icon }
       <div className="statbar-track">
         <motion.div
           className={`statbar-fill ${toneClass}`}
-          initial={{ width: 0 }}
+          initial={{ width: reduceMotion ? `${clamped}%` : 0 }}
           animate={{ width: `${clamped}%` }}
-          transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
+          transition={reduceMotion ? { duration: 0 } : { duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
         />
       </div>
     </div>

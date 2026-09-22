@@ -4,19 +4,19 @@ namespace api.DTOs;
 
 public class RegisterDto
 {
-    [Required, EmailAddress]
+    [Required, EmailAddress, StringLength(254)]
     public string Email { get; set; } = string.Empty;
 
-    [Required, MinLength(6)]
+    [Required, StringLength(128, MinimumLength = 12)]
     public string Password { get; set; } = string.Empty;
 }
 
 public class LoginDto
 {
-    [Required, EmailAddress]
+    [Required, EmailAddress, StringLength(254)]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
+    [Required, StringLength(128, MinimumLength = 1)]
     public string Password { get; set; } = string.Empty;
 }
 

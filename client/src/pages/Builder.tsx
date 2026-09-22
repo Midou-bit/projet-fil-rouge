@@ -203,7 +203,8 @@ export default function Builder() {
               {saved.map((b) => (
                 <div key={b.name} className="row between" style={{ gap: '0.5rem' }}>
                   <button className="btn btn-sm btn-ghost" style={{ flex: 1, justifyContent: 'flex-start' }} onClick={() => applySaved(b)}>{b.name}</button>
-                  <button className="btn btn-sm btn-danger" onClick={() => deleteSaved(b.name)}>✕</button>
+                  <button className="btn btn-sm btn-danger" aria-label={`Supprimer le build ${b.name}`}
+                    onClick={() => deleteSaved(b.name)}>✕</button>
                 </div>
               ))}
             </div>
@@ -230,11 +231,11 @@ export default function Builder() {
           initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
           <div className="row wrap" style={{ gap: '0.6rem', marginBottom: '1rem', alignItems: 'end' }}>
             <div style={{ flex: '1 1 140px' }}>
-              <label>Jeu cible</label>
+              <label htmlFor="builder-game">Jeu cible</label>
               {games.length === 0 ? (
                 <p className="muted" style={{ margin: '0.4rem 0 0', fontSize: '0.85rem' }}>Chargement…</p>
               ) : (
-                <select value={gameId ?? ''} onChange={(e) => setGameId(e.target.value ? Number(e.target.value) : null)}>
+                <select id="builder-game" value={gameId ?? ''} onChange={(e) => setGameId(e.target.value ? Number(e.target.value) : null)}>
                   <option value="">— Aucun —</option>
                   {games.map((g) => <option key={g.id} value={g.id}>{g.title}</option>)}
                 </select>
@@ -242,11 +243,13 @@ export default function Builder() {
             </div>
           </div>
           <div className="row wrap" style={{ gap: '0.6rem', marginBottom: '1rem' }}>
-            <div className="row" style={{ gap: '0.3rem' }}>
-              {RESOS.map((r) => <button key={r} className={`btn btn-sm ${reso === r ? 'btn-cyan' : 'btn-ghost'}`} onClick={() => setReso(r)}>{r}</button>)}
+            <div className="row" role="group" aria-label="Résolution cible" style={{ gap: '0.3rem' }}>
+              {RESOS.map((r) => <button type="button" key={r} aria-pressed={reso === r}
+                className={`btn btn-sm ${reso === r ? 'btn-cyan' : 'btn-ghost'}`} onClick={() => setReso(r)}>{r}</button>)}
             </div>
-            <div className="row" style={{ gap: '0.3rem' }}>
-              {FPSES.map((f) => <button key={f} className={`btn btn-sm ${fps === f ? 'btn-cyan' : 'btn-ghost'}`} onClick={() => setFps(f)}>{f}</button>)}
+            <div className="row" role="group" aria-label="Images par seconde ciblées" style={{ gap: '0.3rem' }}>
+              {FPSES.map((f) => <button type="button" key={f} aria-pressed={fps === f}
+                className={`btn btn-sm ${fps === f ? 'btn-cyan' : 'btn-ghost'}`} onClick={() => setFps(f)}>{f}</button>)}
             </div>
           </div>
 

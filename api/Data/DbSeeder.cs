@@ -26,7 +26,7 @@ public static class DbSeeder
             if (!await roleMgr.RoleExistsAsync(role))
                 await roleMgr.CreateAsync(new IdentityRole(role));
 
-        // Mots de passe démo conformes à la politique CNIL (12+ car., 4 types).
+        // Mots de passe démo conformes à la politique applicative (12+ car., 4 types).
         await EnsureUser(userMgr, "admin@frameforge.dev", "AdminFrame2026!", Roles.Admin);
         await EnsureUser(userMgr, "client@frameforge.dev", "ClientFrame2026!", Roles.Client);
     }
@@ -144,8 +144,8 @@ public static class DbSeeder
             ("Valorant", 2020, 25, 35, 8, 80),
         };
 
-        // Scaling DOUX des seuils par résolution : le resolutionFactor de la formule FPS
-        // (1.0/0.7/0.45 selon résolution) porte déjà l'essentiel du coût résolution. On évite la double peine.
+        // Chaque couple résolution/FPS possède ses propres seuils. ScoringService les utilise
+        // directement : aucun second facteur de résolution n'est appliqué lors de l'estimation.
         var resMult = new Dictionary<string, double> { ["1080p"] = 1.0, ["1440p"] = 1.1, ["4K"] = 1.25 };
         var fpsMult = new Dictionary<int, double> { [60] = 1.0, [144] = 1.4 };
 

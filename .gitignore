@@ -2,6 +2,7 @@
 node_modules/
 client/node_modules/
 client/dist/
+client/coverage/
 dist/
 
 # .NET
@@ -22,6 +23,7 @@ __pycache__/
 .env
 .env.local
 api/appsettings.Development.json
+**/.claude/settings.local.json
 
 # OS / IDE
 .vscode/

@@ -13,16 +13,16 @@ public class ReviewDto
 
 public class CreateReviewDto
 {
-    [Required] public int ProductId { get; set; }
+    [Range(1, int.MaxValue)] public int ProductId { get; set; }
     [Range(1, 5)] public int Rating { get; set; }
-    [Required, MinLength(1), MaxLength(1000)] public string Comment { get; set; } = string.Empty;
+    [Required, StringLength(1000, MinimumLength = 1)] public string Comment { get; set; } = string.Empty;
 }
 
 public class CreateSupportDto
 {
-    [Required, EmailAddress] public string Email { get; set; } = string.Empty;
-    [Required, MaxLength(150)] public string Subject { get; set; } = string.Empty;
-    [Required, MaxLength(2000)] public string Message { get; set; } = string.Empty;
+    [Required, EmailAddress, StringLength(254)] public string Email { get; set; } = string.Empty;
+    [Required, StringLength(150, MinimumLength = 3)] public string Subject { get; set; } = string.Empty;
+    [Required, StringLength(2000, MinimumLength = 10)] public string Message { get; set; } = string.Empty;
 }
 
 public class SupportMessageDto
@@ -39,8 +39,14 @@ public class CheckoutResponseDto
 {
     public string? CheckoutUrl { get; set; }
     public int OrderId { get; set; }
-    /// <summary>True quand Stripe n'est pas configuré : on simule le paiement (mode démo).</summary>
-    public bool Simulated { get; set; }
+    /// <summary>Mode décidé par le serveur : "simulation" ou "stripe_test".</summary>
+    public string PaymentMode { get; set; } = string.Empty;
+}
+
+public class CheckoutConfirmationDto
+{
+    public string Status { get; set; } = string.Empty;
+    public string PaymentMode { get; set; } = string.Empty;
 }
 
 public class AdminStatsDto
