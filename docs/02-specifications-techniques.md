@@ -18,8 +18,8 @@ met en œuvre.
 | Accès aux données | Entity Framework Core | 8 |
 | Base de données | SQLite | fichier local |
 | Authentification | ASP.NET Core Identity, jeton JWT | 8 |
-| Paiement | Stripe.net, environnement de test | 52 |
-| Tests back-end | xUnit, WebApplicationFactory, coverlet | 2.5 |
+| Paiement | Stripe.net, mode `StripeTest` facultatif ou simulation | 52 |
+| Tests back-end | xUnit, WebApplicationFactory, coverlet | 2.9 |
 | Tests front-end | Vitest, Testing Library, jsdom | 4 |
 | Intégration continue | GitHub Actions | v4 |
 | Conteneurisation | Docker, nginx | images officielles |
@@ -45,11 +45,12 @@ La justification de ces choix figure dans la [note de veille](05-veille-techniqu
 | Id | Exigence | Vérification |
 |---|---|---|
 | EF-10 | Les images par seconde estimées sont la borne la plus basse entre la limite graphique et la limite processeur | Tests unitaires de `ScoringService.EstimateFps` |
-| EF-11 | La résolution applique un facteur de 1,0 en 1080p, 0,7 en 1440p et 0,45 en 4K | `ScoringService.ResolutionFactor` |
+| EF-11 | Les seuils de jeu portent déjà leur résolution et leur cible FPS ; le calcul ne réapplique pas de facteur de résolution | Tests de référence identiques frontend/backend |
 | EF-12 | Un écart de plus de vingt-cinq points entre processeur et carte graphique applique une pénalité progressive | `ScoringService.BottleneckPenalty` |
 | EF-13 | La performance globale pondère la carte graphique à 70 % et le processeur à 30 %, bornée entre 0 et 100 | `ScoringService.GamingPerformance` |
 | EF-14 | Le verdict distingue trois états : recommandé, minimum, insuffisant | `ScoringService.Evaluate` |
 | EF-15 | Une configuration recommandée est physiquement assemblable | Socket de la carte mère égal à celui du processeur, type de mémoire égal à celui de la carte mère, alimentation couvrant la consommation |
+| EF-16 | La RAM minimale participe aux verdicts minimum et recommandé | Tests unitaires de `ScoringService.Evaluate` et de `client/src/lib/scoring.ts` |
 
 ### 2.3 Compte et sécurité d'accès
 
@@ -67,8 +68,8 @@ La justification de ces choix figure dans la [note de veille](05-veille-techniqu
 |---|---|---|
 | EF-30 | Le stock est contrôlé à la création de la commande et de nouveau à la confirmation | `CheckoutController` |
 | EF-31 | Deux confirmations concurrentes sur le même produit ne peuvent pas survendre | Jeton de concurrence sur la colonne de stock |
-| EF-32 | En mode Stripe réel, le statut du paiement est revérifié auprès de Stripe avant décrémentation | Lecture de `Session.PaymentStatus` |
-| EF-33 | Sans clé Stripe, le paiement est simulé et la commande passe à l'état payé | Mode démonstration |
+| EF-32 | En mode Stripe test, le statut du paiement est revérifié auprès de Stripe avant décrémentation | Lecture de `Session.PaymentStatus` |
+| EF-33 | En mode `Simulation`, la commande reste en attente jusqu'à une confirmation serveur explicite ; aucune transaction financière n'a lieu | Mode démonstration |
 | EF-34 | Une commande confirmée deux fois n'est traitée qu'une fois | Contrôle d'idempotence sur le statut |
 
 ### 2.5 Protection des données
@@ -78,6 +79,8 @@ La justification de ces choix figure dans la [note de veille](05-veille-techniqu
 | EF-40 | La suppression du compte efface avis, panier, messages et commandes | `DELETE /api/account` |
 | EF-41 | Les comptes de démonstration sont protégés contre la suppression | Réponse 400 explicite |
 | EF-42 | Aucun traceur n'est déposé avant consentement explicite | `CookieBanner.tsx`, `analytics.ts` |
+| EF-43 | Le compte connecté peut exporter en JSON ses données FRAMEFORGE liées, sans champs Identity sensibles ni session Stripe | `GET /api/account/export`, tests d'isolation |
+| EF-44 | Le consentement de mesure est consultable, modifiable, retirable, daté et versionné | `PrivacyPreferences.tsx`, `consent.ts` |
 
 ---
 
@@ -102,19 +105,24 @@ GET    /api/games/{id}/build         configuration recommandée
 POST   /api/check                    verdict du vérificateur
 POST   /api/build/calc               recalcul des indicateurs de l'assembleur
 POST   /api/support                  message de support
+GET    /health                      santé API et accès base, sans détail sensible
 ```
 
 ### 3.2 Ressources authentifiées
 
 ```
 GET    /api/cart                     panier courant
-POST   /api/cart                     ajout au panier
-PUT    /api/cart/{id}                modification de quantité
-DELETE /api/cart/{id}                retrait d'une ligne
+POST   /api/cart/items               ajout au panier
+PUT    /api/cart/items/{id}          modification de quantité
+DELETE /api/cart/items/{id}          retrait d'une ligne
+DELETE /api/cart                     vidage du panier
 POST   /api/checkout                 création de la commande
 POST   /api/checkout/confirm/{id}    confirmation du paiement
 GET    /api/orders                   historique
+GET    /api/orders/{id}              détail d'une commande appartenant au compte
+POST   /api/orders/{id}/cancel       annulation d'une commande en attente
 POST   /api/reviews                  publication d'un avis
+GET    /api/account/export           export JSON des données liées au compte
 DELETE /api/account                  suppression du compte et des données
 ```
 
@@ -145,7 +153,10 @@ GET    /api/admin/stats              indicateurs du tableau de bord
 | 403 | Jeton valide mais rôle insuffisant |
 | 404 | Ressource inexistante |
 | 409 | Conflit de concurrence sur le stock |
+| 429 | Limite de requêtes atteinte |
 | 500 | Erreur interne, message générique sans détail technique en production |
+| 502 | Service Stripe test temporairement indisponible |
+| 503 | Mode de paiement ou configuration critique temporairement indisponible |
 
 ---
 
@@ -161,6 +172,8 @@ GET    /api/admin/stats              indicateurs du tableau de bord
 | ENF-04 | Aucune trace d'exception n'est renvoyée au client en production | Gestionnaire d'exception dédié |
 | ENF-05 | L'application refuse de démarrer en production sans clé de signature | `JwtKeyProvider.Resolve` |
 | ENF-06 | Aucun secret n'est versionné | `.gitignore`, fichier d'exemple committé |
+| ENF-07 | Les routes publiques sensibles sont limitées par adresse réseau | Politiques ASP.NET Core sur connexion, inscription, support et calculs |
+| ENF-08 | La santé de l'API et de SQLite est vérifiable sans exposer de diagnostic interne | `GET /health` |
 
 ### 4.2 Performance et éco-conception
 
@@ -180,7 +193,7 @@ GET    /api/admin/stats              indicateurs du tableau de bord
 | ENF-21 | Les tableaux larges défilent dans leur propre conteneur | Conteneur en défilement horizontal |
 | ENF-22 | Toute image porte une alternative textuelle | Propriété obligatoire du composant d'image |
 | ENF-23 | Les erreurs de saisie sont rattachées au champ et annoncées | `aria-invalid`, `role="alert"`, région active |
-| ENF-24 | Les animations respectent la préférence de mouvement réduit | Règle média dédiée |
+| ENF-24 | Les animations CSS et Framer Motion respectent la préférence de mouvement réduit | Règle média dédiée et `MotionConfig reducedMotion="user"` |
 
 ### 4.4 Référencement
 
@@ -190,7 +203,8 @@ GET    /api/admin/stats              indicateurs du tableau de bord
 | ENF-31 | Données structurées sur l'organisation et sur chaque produit | Blocs JSON-LD |
 | ENF-32 | Plan de site et fichier d'exclusion des robots | Servis à la racine |
 | ENF-33 | Image de partage au format 1200 par 630 | Balises Open Graph et Twitter |
-| ENF-34 | Mesure d'audience anonyme et sans cookie | Chargée après consentement |
+| ENF-34 | Chargeur GoatCounter optionnel | Chargé uniquement après consentement et configuration d'un code de site |
+| ENF-35 | Une URL canonique cohérente est publiée et les pages privées/404 sont en `noindex` | `useSeo`, canonical et robots meta |
 
 ### 4.5 Qualité
 
@@ -198,8 +212,8 @@ GET    /api/admin/stats              indicateurs du tableau de bord
 |---|---|---|
 | ENF-40 | Le code TypeScript est vérifié en mode strict | Échec du build sinon |
 | ENF-41 | L'analyse statique ne remonte aucune erreur | ESLint en intégration continue |
-| ENF-42 | La couverture de lignes du back-end dépasse cinquante pour cent | Mesurée à 78,5 % |
-| ENF-43 | Toute fusion sur la branche principale déclenche build, analyse et tests | GitHub Actions |
+| ENF-42 | Les couvertures de lignes frontend et backend dépassent cinquante pour cent | Seuils contrôlés par Vitest et GitHub Actions/Cobertura |
+| ENF-43 | Toute fusion sur la branche principale déclenche build, analyse, tests, audits et construction Docker | GitHub Actions |
 
 ---
 

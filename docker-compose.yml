@@ -6,10 +6,11 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      # Jwt__Key: "<clé ≥ 32 caractères>"          # OBLIGATOIRE en Production
+      Jwt__Key: ${FRAMEFORGE_JWT_KEY:-}
+      ConnectionStrings__Default: Data Source=/data/frameforge.db
       # Stripe__SecretKey: "sk_test_..."            # optionnel (sinon paiement simulé)
     volumes:
-      - api-data:/app                               # persiste la base SQLite entre redéploiements
+      - api-data:/data                              # persiste uniquement SQLite, sans masquer api.dll
     expose:
       - "8080"
 

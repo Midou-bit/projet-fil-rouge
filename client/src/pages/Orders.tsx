@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { euro, date } from '../lib/format';
@@ -18,6 +19,7 @@ export default function Orders() {
   const { notify } = useToast();
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [exporting, setExporting] = useState(false);
 
   async function cancel(id: number) {
     try {
@@ -27,13 +29,34 @@ export default function Orders() {
     } catch (e) { notify(errorMessage(e), 'error'); }
   }
 
-  // RGPD — droit à l'effacement : supprime le compte + toutes les données personnelles.
+  async function downloadData() {
+    setExporting(true);
+    try {
+      const exported = await accountApi.exportData();
+      const blob = new Blob([JSON.stringify(exported, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `frameforge-donnees-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      notify('Tes données ont été exportées.', 'success');
+    } catch (e) {
+      notify(errorMessage(e, "L'export de tes données a échoué."), 'error');
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  // Effacement des données FrameForge reliées par l'identifiant du compte.
   async function deleteAccount() {
-    if (!confirm('Supprimer définitivement ton compte et toutes tes données (commandes, avis, panier) ? Cette action est irréversible.')) return;
+    if (!confirm('Supprimer définitivement ton compte et les données FrameForge qui lui sont liées (commandes, avis, panier, messages connectés) ? Cette action est irréversible.')) return;
     try {
       await accountApi.remove();
       logout();
-      notify('Ton compte et tes données ont été supprimés.', 'success');
+      notify('Ton compte et ses données FrameForge liées ont été supprimés.', 'success');
       navigate('/');
     } catch (e) { notify(errorMessage(e), 'error'); }
   }
@@ -43,7 +66,10 @@ export default function Orders() {
       <h1>Mes commandes</h1>
       <p className="muted" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>{email}</p>
       {loading ? (
-        <div className="center" style={{ padding: '2rem' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
+        <div className="center" role="status" aria-live="polite" style={{ padding: '2rem' }}>
+          <div className="spinner" aria-hidden="true" style={{ margin: '0 auto' }} />
+          <span className="sr-only">Chargement de tes commandes…</span>
+        </div>
       ) : orders.length === 0 ? (
         <div className="surface center" style={{ padding: '2.5rem' }}>
           <p className="muted">Aucune commande pour l’instant.</p>
@@ -74,14 +100,20 @@ export default function Orders() {
         </div>
       )}
 
-      {/* Zone RGPD — droit à l'effacement */}
+      {/* Zone de contrôle des données : export propriétaire et effacement. */}
       <div className="surface" style={{ padding: '1.2rem', marginTop: '2rem', borderColor: 'rgba(255,42,109,0.4)' }}>
         <h3 style={{ marginTop: 0 }}>Confidentialité & données (RGPD)</h3>
         <p className="muted" style={{ fontSize: '0.9rem' }}>
-          Conformément au RGPD, tu peux supprimer ton compte et l'ensemble de tes données personnelles
-          (commandes, avis, panier). Voir notre <Link to="/confidentialite">politique de confidentialité</Link>.
+          Télécharge une copie JSON des données liées à ton compte ou demande leur suppression.
+          Les limites sont détaillées dans notre <Link to="/confidentialite">politique de confidentialité</Link>.
         </p>
-        <button className="btn btn-sm btn-danger" onClick={deleteAccount}>Supprimer mon compte et mes données</button>
+        <div className="row wrap">
+          <button className="btn btn-sm btn-cyan" onClick={downloadData} disabled={exporting}
+            aria-busy={exporting || undefined}>
+            {exporting ? 'Préparation…' : 'Télécharger mes données'}
+          </button>
+          <button className="btn btn-sm btn-danger" onClick={deleteAccount}>Supprimer mon compte et ses données liées</button>
+        </div>
       </div>
     </div>
   );

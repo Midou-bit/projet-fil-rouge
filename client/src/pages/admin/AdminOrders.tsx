@@ -24,7 +24,10 @@ export default function AdminOrders() {
   return (
     <div className="stack">
       {isLoading ? (
-        <div className="center" style={{ padding: '2rem' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
+        <div className="center" role="status" aria-live="polite" style={{ padding: '2rem' }}>
+          <div className="spinner" aria-hidden="true" style={{ margin: '0 auto' }} />
+          <span className="sr-only">Chargement des commandes…</span>
+        </div>
       ) : orders.length === 0 && <p className="muted">Aucune commande.</p>}
       {orders.map((o) => (
         <div key={o.id} className="surface" style={{ padding: '1rem' }}>
@@ -35,7 +38,8 @@ export default function AdminOrders() {
             </div>
             <div className="row" style={{ gap: '0.5rem' }}>
               <span className={`badge badge-${TONE[o.status] ?? 'cyan'}`}>{o.status}</span>
-              <select value={o.status} onChange={(e) => setStatus(o.id, e.target.value)} style={{ width: 130 }}>
+              <select aria-label={`Statut de la commande ${o.id}`} value={o.status}
+                onChange={(e) => setStatus(o.id, e.target.value)} style={{ width: 130 }}>
                 {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>

@@ -28,6 +28,9 @@ public class ReviewsTests : IClassFixture<ApiFactory>
         await client.PostAsJsonAsync("/api/cart/items", new { productId = product.Id, quantity = 1 });
         var checkout = await client.PostAsync("/api/checkout", content: null);
         checkout.EnsureSuccessStatusCode();
+        var checkoutBody = await checkout.Content.ReadFromJsonAsync<CheckoutResponseDto>();
+        var confirm = await client.PostAsync($"/api/checkout/confirm/{checkoutBody!.OrderId}", content: null);
+        confirm.EnsureSuccessStatusCode();
 
         var res = await client.PostAsJsonAsync("/api/reviews", new { productId = product.Id, rating = 5, comment = "Top !" });
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);

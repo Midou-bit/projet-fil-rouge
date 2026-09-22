@@ -31,6 +31,8 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
                 ["ConnectionStrings:Default"] = $"Data Source={_dbPath}",
                 ["Stripe:SecretKey"] = "",
                 ["Stripe:PublishableKey"] = "",
+                ["Stripe:Mode"] = "Simulation",
+                ["RateLimiting:Enabled"] = "false",
             });
         });
 

@@ -1,6 +1,6 @@
 import { api } from './client';
 import type {
-  AdminStats, AuthResponse, BuildRecommendation, Cart, Category, CheckResult,
+  AccountExport, AdminStats, AuthResponse, BuildRecommendation, Cart, Category, CheckResult,
   Game, Order, Paged, Product, Review, ScoreSummary, SupportMessage,
 } from './types';
 
@@ -14,6 +14,7 @@ export const authApi = {
 
 // --- Compte (RGPD) ---
 export const accountApi = {
+  exportData: () => api.get<AccountExport>('/account/export').then((r) => r.data),
   remove: () => api.delete('/account').then((r) => r.data),
 };
 
@@ -58,10 +59,10 @@ export const cartApi = {
 // --- Checkout / commandes ---
 export const checkoutApi = {
   create: () =>
-    api.post<{ checkoutUrl?: string; orderId: number; simulated: boolean }>('/checkout')
+    api.post<{ checkoutUrl?: string; orderId: number; paymentMode: 'simulation' | 'stripe_test' }>('/checkout')
       .then((r) => r.data),
   confirm: (orderId: number) =>
-    api.post<{ status: string }>(`/checkout/confirm/${orderId}`).then((r) => r.data),
+    api.post<{ status: 'Paid' | 'Shipped'; paymentMode: 'simulation' | 'stripe_test' }>(`/checkout/confirm/${orderId}`).then((r) => r.data),
 };
 export const ordersApi = {
   mine: () => api.get<Order[]>('/orders').then((r) => r.data),

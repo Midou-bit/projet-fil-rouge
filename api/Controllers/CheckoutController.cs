@@ -15,24 +15,57 @@ namespace api.Controllers;
 [Authorize]
 public class CheckoutController : ControllerBase
 {
+    private const string SimulationMode = "simulation";
+    private const string StripeTestMode = "stripe_test";
+
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
-    public CheckoutController(AppDbContext db, IConfiguration config)
+    private readonly ILogger<CheckoutController> _logger;
+
+    public CheckoutController(
+        AppDbContext db,
+        IConfiguration config,
+        ILogger<CheckoutController> logger)
     {
         _db = db;
         _config = config;
+        _logger = logger;
     }
 
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-    private bool StripeConfigured =>
-        _config["Stripe:SecretKey"] is { } k && k.StartsWith("sk_test_") && !k.Contains("REPLACE_ME");
+    private bool SimulationEnabled =>
+        string.Equals(_config["Stripe:Mode"], "Simulation", StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>Crée une commande Pending depuis le panier puis une session Stripe test
-    /// (ou simule le paiement si Stripe n'est pas configuré — mode démo).</summary>
+    private bool StripeTestEnabled =>
+        string.Equals(_config["Stripe:Mode"], "StripeTest", StringComparison.OrdinalIgnoreCase);
+
+    private string? StripeTestKey =>
+        _config["Stripe:SecretKey"] is { } key
+        && key.StartsWith("sk_test_", StringComparison.Ordinal)
+        && !key.Contains("REPLACE_ME", StringComparison.OrdinalIgnoreCase)
+            ? key
+            : null;
+
+    /// <summary>Crée une commande Pending depuis le panier. Le mode de paiement est une
+    /// configuration serveur explicite : simulation locale ou session Stripe de test.</summary>
     [HttpPost]
     public async Task<ActionResult<CheckoutResponseDto>> Create()
     {
+        if (!SimulationEnabled && !StripeTestEnabled)
+        {
+            _logger.LogWarning("Checkout refusé : mode de paiement serveur invalide");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { message = "Le paiement est temporairement indisponible." });
+        }
+
+        if (StripeTestEnabled && StripeTestKey is null)
+        {
+            _logger.LogWarning("Checkout Stripe test indisponible : configuration incomplète");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { message = "Le paiement Stripe test est temporairement indisponible." });
+        }
+
         var cart = await _db.Carts
             .Include(c => c.Items).ThenInclude(i => i.Product)
             .FirstOrDefaultAsync(c => c.UserId == UserId);
@@ -47,12 +80,26 @@ public class CheckoutController : ControllerBase
                 return BadRequest(new { message = $"Stock insuffisant pour {item.Product.Name}." });
         }
 
-        // Idempotence : une commande Pending abandonnée d'un essai de checkout précédent ne doit pas
-        // rester confirmable en parallèle de la nouvelle (sinon double décrément de stock possible).
+        // Une session Stripe en attente peut encore être payée hors de l'application : ne jamais
+        // supprimer sa commande ni en créer une seconde à partir du même panier. L'utilisateur doit
+        // reprendre ou annuler explicitement cette commande avant de recommencer.
         var stalePending = await _db.Orders
             .Where(o => o.UserId == UserId && o.Status == OrderStatus.Pending)
             .ToListAsync();
-        if (stalePending.Count > 0) _db.Orders.RemoveRange(stalePending);
+        if (stalePending.Any(o => o.StripeSessionId is not null))
+        {
+            _logger.LogWarning("Checkout refusé : une session Stripe test est déjà en attente");
+            return Conflict(new
+            {
+                message = "Un paiement Stripe test est déjà en attente. Reprenez ou annulez cette commande avant de recommencer."
+            });
+        }
+
+        // Une tentative simulée abandonnée n'a aucun paiement externe associé. On l'annule
+        // logiquement plutôt que de la supprimer afin de conserver un historique cohérent et de
+        // garantir qu'elle ne pourra plus décrémenter le stock lors d'une confirmation tardive.
+        foreach (var pendingOrder in stalePending)
+            pendingOrder.Status = OrderStatus.Cancelled;
 
         var order = new Order
         {
@@ -69,15 +116,14 @@ public class CheckoutController : ControllerBase
         _db.Orders.Add(order);
         await _db.SaveChangesAsync();
 
-        if (!StripeConfigured)
+        if (SimulationEnabled)
         {
-            // Mode démo : paiement simulé immédiat (Stripe test non configuré).
-            if (!await ConfirmOrderInternal(order))
-                return Conflict(new { message = "Stock insuffisant pour finaliser la commande." });
-            return Ok(new CheckoutResponseDto { OrderId = order.Id, Simulated = true });
+            // La création ne constitue pas un succès. Même en démo, le client devra appeler
+            // l'endpoint confirm : le serveur revalidera propriétaire, statut et stock.
+            _logger.LogInformation("Commande de démonstration créée en attente de confirmation serveur");
+            return Ok(new CheckoutResponseDto { OrderId = order.Id, PaymentMode = SimulationMode });
         }
 
-        StripeConfiguration.ApiKey = _config["Stripe:SecretKey"];
         var successUrl = _config["Stripe:SuccessUrl"] ?? "http://localhost:5173/checkout/success";
         var cancelUrl = _config["Stripe:CancelUrl"] ?? "http://localhost:5173/checkout/cancel";
 
@@ -99,40 +145,103 @@ public class CheckoutController : ControllerBase
             Metadata = new Dictionary<string, string> { ["orderId"] = order.Id.ToString() }
         };
 
-        var session = await new SessionService().CreateAsync(options);
-        order.StripeSessionId = session.Id;
-        await _db.SaveChangesAsync();
+        try
+        {
+            var stripeClient = new StripeClient(StripeTestKey!);
+            var session = await new SessionService(stripeClient).CreateAsync(options);
+            if (string.IsNullOrWhiteSpace(session.Id) || string.IsNullOrWhiteSpace(session.Url))
+                throw new StripeException("Stripe n'a pas retourné de session exploitable.");
 
-        return Ok(new CheckoutResponseDto { OrderId = order.Id, CheckoutUrl = session.Url });
+            order.StripeSessionId = session.Id;
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Session Stripe test créée pour une commande en attente");
+            return Ok(new CheckoutResponseDto
+            {
+                OrderId = order.Id,
+                CheckoutUrl = session.Url,
+                PaymentMode = StripeTestMode
+            });
+        }
+        catch (StripeException ex)
+        {
+            order.Status = OrderStatus.Cancelled;
+            await _db.SaveChangesAsync();
+            _logger.LogError("Création de session Stripe test échouée (type {StripeErrorType})",
+                ex.StripeError?.Type ?? "inconnu");
+            return StatusCode(StatusCodes.Status502BadGateway,
+                new { message = "Le service de paiement Stripe test est temporairement indisponible." });
+        }
     }
 
-    /// <summary>Appelé par la page de succès : vérifie le paiement (si Stripe réel), marque la
+    /// <summary>Appelé par la page de retour : vérifie le paiement (si Stripe test), marque la
     /// commande payée, décrémente le stock, vide le panier.</summary>
     [HttpPost("confirm/{orderId:int}")]
-    public async Task<IActionResult> Confirm(int orderId)
+    public async Task<ActionResult<CheckoutConfirmationDto>> Confirm(int orderId)
     {
         var order = await _db.Orders
             .Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == UserId);
         if (order is null) return NotFound();
-        if (order.Status != OrderStatus.Pending) return Ok(new { status = order.Status.ToString() });
 
-        // En mode Stripe réel, on ne fait JAMAIS confiance à ce seul appel client : on revérifie
-        // auprès de Stripe que la session a effectivement été payée avant de livrer quoi que ce soit.
-        if (StripeConfigured)
+        var paymentMode = order.StripeSessionId is null ? SimulationMode : StripeTestMode;
+        if (order.Status is OrderStatus.Paid or OrderStatus.Shipped)
         {
-            if (order.StripeSessionId is null)
-                return BadRequest(new { message = "Commande sans session de paiement." });
+            // Idempotence : un rafraîchissement de la page ne décrémente jamais le stock deux fois.
+            return Ok(new CheckoutConfirmationDto
+            {
+                Status = order.Status.ToString(),
+                PaymentMode = paymentMode
+            });
+        }
+        if (order.Status != OrderStatus.Pending)
+            return Conflict(new { message = "Cette commande ne peut pas être confirmée dans son statut actuel." });
 
-            StripeConfiguration.ApiKey = _config["Stripe:SecretKey"];
-            var session = await new SessionService().GetAsync(order.StripeSessionId);
-            if (session.PaymentStatus != "paid")
-                return BadRequest(new { message = "Paiement non confirmé par Stripe." });
+        // La présence d'une session sur la commande est la source de vérité. Si sa clé n'est
+        // plus disponible, on refuse : une commande Stripe ne bascule jamais en simulation.
+        if (order.StripeSessionId is not null)
+        {
+            if (StripeTestKey is null)
+            {
+                _logger.LogError("Confirmation Stripe test impossible : configuration absente");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    new { message = "La vérification du paiement Stripe test est temporairement indisponible." });
+            }
+
+            try
+            {
+                var stripeClient = new StripeClient(StripeTestKey);
+                var session = await new SessionService(stripeClient).GetAsync(order.StripeSessionId);
+                if (!string.Equals(session.PaymentStatus, "paid", StringComparison.OrdinalIgnoreCase))
+                    return Conflict(new { message = "Paiement non confirmé par Stripe." });
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogError("Vérification Stripe test échouée (type {StripeErrorType})",
+                    ex.StripeError?.Type ?? "inconnu");
+                return StatusCode(StatusCodes.Status502BadGateway,
+                    new { message = "La vérification du paiement Stripe test a temporairement échoué." });
+            }
+        }
+        else if (!SimulationEnabled)
+        {
+            _logger.LogWarning("Confirmation simulée refusée : mode démonstration désactivé");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { message = "La confirmation de cette commande est indisponible." });
         }
 
         if (!await ConfirmOrderInternal(order))
+        {
+            _logger.LogWarning("Confirmation de commande refusée : stock insuffisant ou conflit concurrent");
             return Conflict(new { message = "Stock insuffisant pour finaliser la commande." });
-        return Ok(new { status = order.Status.ToString() });
+        }
+
+        _logger.LogInformation("Commande confirmée par le serveur en mode {PaymentMode}", paymentMode);
+        return Ok(new CheckoutConfirmationDto
+        {
+            Status = order.Status.ToString(),
+            PaymentMode = paymentMode
+        });
     }
 
     /// <summary>Décrémente le stock et marque la commande payée. Revalide le stock à cet instant

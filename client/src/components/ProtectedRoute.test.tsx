@@ -1,23 +1,27 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ProtectedRoute from './ProtectedRoute';
 import { AuthProvider } from '../context/AuthContext';
 
 function renderProtected(adminOnly = false) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter initialEntries={['/protected']}>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<div>Page de connexion</div>} />
-          <Route path="/" element={<div>Accueil</div>} />
-          <Route
-            path="/protected"
-            element={<ProtectedRoute adminOnly={adminOnly}><div>Contenu protégé</div></ProtectedRoute>}
-          />
-        </Routes>
-      </AuthProvider>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={['/protected']}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<div>Page de connexion</div>} />
+            <Route path="/" element={<div>Accueil</div>} />
+            <Route
+              path="/protected"
+              element={<ProtectedRoute adminOnly={adminOnly}><div>Contenu protégé</div></ProtectedRoute>}
+            />
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

@@ -12,7 +12,7 @@ public class CategoryDto
 
 public class CategoryWriteDto
 {
-    [Required, MaxLength(80)]
+    [Required, StringLength(80, MinimumLength = 2)]
     public string Name { get; set; } = string.Empty;
 
     [Required, MaxLength(80), RegularExpression("^[a-z0-9-]+$",
@@ -41,7 +41,7 @@ public class CartDto
 
 public class AddCartItemDto
 {
-    [Required]
+    [Range(1, int.MaxValue)]
     public int ProductId { get; set; }
 
     [Range(1, 99)]

@@ -23,10 +23,10 @@ la sécurité applicative, et la protection des données personnelles.
 1. **N'invente rien.** Utilise exclusivement les faits listés dans ce prompt. Si une information
    manque pour remplir une diapositive, écris `[À COMPLÉTER PAR L'ÉTUDIANT]` plutôt que de combler.
 2. **Aucun chiffre en dehors de cette liste blanche** : 74 composants, 7 catégories, 24 jeux,
-   4 parcours, 50 tests back-end, 37 tests front-end, 78,5 % de couverture de lignes, 12 caractères
-   de mot de passe minimum, 5 tentatives avant verrouillage, 12 heures de validité du jeton,
-   660 kilooctets de paquet livré, 1200 par 630 pixels pour l'image de partage, 8 sections dans la
-   politique de confidentialité, 860 pixels de point de rupture, 375 pixels de largeur mobile,
+   4 parcours, 87 tests back-end, 118 tests front-end, 80,51 % de couverture de lignes back-end,
+   62,26 % de couverture de lignes front-end, 12 caractères de mot de passe minimum, 5 tentatives
+   avant verrouillage, 12 heures de validité du jeton, 1200 par 630 pixels pour l'image de partage,
+   9 sections dans la politique de confidentialité, 860 pixels de point de rupture, 375 pixels de largeur mobile,
    30 secondes de délai d'attente, 3 nouvelles tentatives, 0 euro de coût de fonctionnement.
    Interdiction formelle d'inventer une taille de marché, un nombre d'utilisateurs, un chiffre
    d'affaires, un taux de conversion ou un témoignage.
@@ -80,7 +80,7 @@ catégories, suivi des commandes, traitement des messages de support.
 Interface : React 19, TypeScript, Vite, TanStack React Query, React Router.
 Serveur : ASP.NET Core 8, Entity Framework Core, base SQLite.
 Authentification : ASP.NET Core Identity avec jeton JWT.
-Paiement : Stripe en environnement de test, avec un mode démonstration par défaut.
+Paiement : mode simulation par défaut ; mode `StripeTest` possible uniquement avec une clé de test configurée.
 Tests : xUnit côté serveur, Vitest côté interface.
 Industrialisation : GitHub Actions, conteneurs Docker.
 Hébergement : Netlify pour le site, Render pour l'interface de programmation, offres gratuites.
@@ -89,9 +89,10 @@ Hébergement : Netlify pour le site, Render pour l'interface de programmation, o
 
 Modèle de calcul assumé, pas des mesures réelles. Principe : dans une configuration, la pièce la
 plus faible impose sa limite. Le site calcule une limite graphique et une limite processeur, et
-retient la plus basse des deux. La résolution applique un facteur. Un écart trop grand entre les
-deux composants applique une pénalité de goulet d'étranglement. Cette honnêteté sur la nature du
-modèle est annoncée sur le site lui-même.
+retient la plus basse des deux. Les exigences portent déjà leur résolution et leur cible d'images
+par seconde : aucun second facteur de résolution n'est appliqué. Un écart trop grand entre les deux
+composants applique une pénalité de goulet d'étranglement. La mémoire participe aussi au verdict.
+Cette honnêteté sur la nature du modèle est annoncée sur le site lui-même.
 
 ---
 
@@ -128,9 +129,13 @@ produit partage sa propre photo.
 **Essai sans friction.** Deux comptes de démonstration permettent de parcourir tout le tunnel
 d'achat sans créer de compte.
 
-**Mesure d'audience.** Un outil sans cookie a été retenu plutôt qu'un outil publicitaire, par
-cohérence avec le discours de protection des données. Le branchement final n'est pas encore fait,
-voir la section des correctifs.
+**Mesure d'audience.** Le chargeur GoatCounter est prêt, mais aucun code de site n'est configuré et
+aucune activation réelle n'est revendiquée. Le script ne peut être chargé qu'après consentement ;
+les propriétés du service devront être vérifiées lors de la création du compte externe.
+
+**API tierce directe.** La page Jeux contient une rubrique de découverte qui interroge l'API
+publique FreeToGame directement depuis React, avec HTTPS, délai maximal, validation de réponse,
+cache, états de repli et aucune clé exposée.
 
 ---
 
@@ -138,7 +143,7 @@ voir la section des correctifs.
 
 ### Ce qui est en place
 
-**Authentification.** Politique de mot de passe conforme aux recommandations de la CNIL : douze
+**Authentification.** Politique de mot de passe renforcée : douze
 caractères minimum avec majuscule, minuscule, chiffre et caractère spécial. Verrouillage du compte
 après cinq tentatives infructueuses. Mots de passe hachés, jamais stockés en clair.
 
@@ -167,25 +172,30 @@ seulement un message générique.
 confirmations simultanées sur le même produit ne peuvent pas survendre. Le stock est revérifié à la
 confirmation, pas seulement à la création de la commande.
 
-**Paiement.** En mode Stripe réel, le serveur ne fait jamais confiance au retour du navigateur. Il
-relit le statut réel de la session auprès de Stripe avant toute décrémentation de stock. Un
-utilisateur ne peut pas se déclarer payé en appelant directement l'adresse de confirmation. La
-confirmation est idempotente.
+**Paiement.** En mode `StripeTest`, le serveur ne fait jamais confiance au retour du navigateur. Il
+relit le statut de la session de test auprès de Stripe avant toute décrémentation de stock. En mode
+simulation, une confirmation serveur reste obligatoire. Dans les deux cas, la commande appartient
+au compte connecté et la confirmation est idempotente. Aucun paiement Stripe test abouti n'est
+revendiqué sans vérification externe.
 
 **Secrets.** Aucun secret n'est versionné. Le fichier de configuration public ne contient que la
 structure, un fichier d'exemple est fourni, les vraies valeurs sont ignorées par le gestionnaire de
 versions et injectées en variables d'environnement chez l'hébergeur.
 
-### Ce qui n'est pas encore en place, avec le correctif prévu
+**Protection contre les abus.** Le limiteur natif ASP.NET Core protège la connexion, l'inscription,
+le support public et les calculs coûteux. Des journaux structurés, sans mot de passe, jeton ni contenu
+privé, couvrent les refus d'authentification et les mutations importantes. `/health` vérifie l'API et
+SQLite avec une réponse minimale.
+
+### Ce qui reste à compléter
 
 | Point | Pourquoi c'est un risque | Correctif annoncé |
 |---|---|---|
-| Aucune limitation de débit sur l'interface de programmation | Le verrouillage protège un compte, il ne protège pas l'API contre un balayage massif | Activer le limiteur de débit natif de .NET 8 sur les routes d'authentification |
-| Aucune journalisation d'audit | Une action d'administration ne laisse pas de trace exploitable | Journal structuré sur toutes les écritures administrateur |
 | Aucune supervision ni alerte | Une indisponibilité se découvre en ouvrant le site | Sonde de disponibilité périodique, avec l'effet secondaire utile de garder le serveur éveillé |
 | Pas de révocation de jeton | Un jeton dérobé reste valable douze heures | Jeton de rafraîchissement à durée courte, ou liste de révocation |
-| Base de données éphémère en production | Les données sont perdues à chaque redéploiement | Volume persistant, ou service de base de données géré |
+| Persistance Render non vérifiable depuis le dépôt | Sans disque externe, SQLite est recréée au redéploiement | Vérifier la console Render puis configurer un volume ou une base gérée |
 | Aucun audit d'accessibilité formel | La conformité au référentiel RGAA n'est pas démontrée | Audit des contrastes et de la navigation au clavier |
+| Aucun webhook Stripe signé configuré | Un retour de navigateur reste nécessaire au flux actuel | Configurer un endpoint et un secret de signature dans un environnement Stripe test réel |
 
 ---
 
@@ -193,9 +203,9 @@ versions et injectées en variables d'environnement chez l'hébergeur.
 
 ### Ce qui est en place
 
-**Politique de confidentialité** accessible publiquement, en 8 sections : responsable du traitement,
-données collectées, finalités, durée de conservation, sécurité, droits, cookies et stockage, et une
-section dédiée à l'outil de détection matérielle.
+**Politique de confidentialité** accessible publiquement, en 9 sections. Elle décrit factuellement le
+compte, les stockages navigateur, le panier serveur, les commandes, avis et support, les services
+externes, les durées non automatisées, les droits, l'outil de détection matérielle et la sécurité.
 
 **Cette dernière section mérite d'être citée à l'oral.** Le site propose un petit outil facultatif à
 télécharger, qui lit localement le modèle de carte graphique, de processeur et la quantité de
@@ -209,8 +219,10 @@ matérielle.
 stockage strictement essentiel, la session et le panier, est exclu du consentement et annoncé comme
 tel.
 
-**Droit à l'effacement fonctionnel en un clic.** Depuis l'espace commandes, la suppression du compte
-efface aussi les avis, le panier, les messages de support et les commandes.
+**Droits d'accès et d'effacement.** Depuis l'espace commandes, le compte connecté peut télécharger
+un export JSON de son profil et de ses données liées. La suppression transactionnelle efface le
+compte, les avis, le panier, les commandes et les messages de support reliés par son identifiant.
+Les messages visiteurs non reliés et les données déjà reçues par un tiers ne sont pas prétendus supprimés.
 
 **Minimisation.** Seules sont collectées une adresse électronique, un mot de passe haché,
 l'historique des commandes, les avis publiés et les messages de support. Aucune donnée sensible.
@@ -219,27 +231,18 @@ l'historique des commandes, les avis publiés et les messages de support. Aucune
 site, prix, processus de commande, paiement en mode démonstration, absence de livraison, droit de
 rétractation, propriété intellectuelle.
 
-**Mesure d'audience** choisie sans cookie et sans identifiant persistant, hébergée en Europe,
-plutôt qu'un outil publicitaire. Elle n'est chargée qu'après consentement explicite, alors même
-qu'elle ne dépose rien : c'est un choix de cohérence.
+**Consentement.** Le choix analytics est daté, versionné, consultable et modifiable depuis
+« Préférences de confidentialité ». GoatCounter reste désactivé tant que le propriétaire n'a pas
+créé puis configuré un site externe ; le dépôt ne garantit ni ses traitements ni son hébergement.
 
-### L'écart à assumer, et son correctif
+### Les limites à assumer
 
-**C'est le point à traiter frontalement, il fera bonne impression.**
-
-La politique de confidentialité annonce un droit d'accès, de rectification et d'effacement. Dans les
-faits, seul **l'effacement** est implémenté en un clic. L'accès est partiel : l'utilisateur voit ses
-commandes mais ne peut pas exporter l'ensemble de ses données. La **rectification n'existe pas** :
-il n'y a aucun moyen de changer son mot de passe ou son adresse électronique depuis l'interface.
-
-Formulation à tenir : le texte promet aujourd'hui plus que le code ne fait, l'écart a été identifié,
-et trois correctifs sont prévus. Ajouter la modification du mot de passe et de l'adresse. Ajouter un
-export des données du compte au format JSON, pour le droit à la portabilité. Et d'ici là, aligner le
-texte de la politique sur ce qui est réellement disponible, car une politique qui promet trop est
-elle-même un manquement.
-
-Deux autres manques à citer : aucun registre des traitements n'a été tenu, et le consentement n'est
-pas horodaté ni conservé comme preuve.
+L'export et l'effacement liés au compte sont implémentés, mais la **rectification autonome** ne l'est
+pas : l'adresse et le mot de passe ne se modifient pas depuis l'interface. La demande passe encore par
+le support. Il n'existe ni purge automatique par durée, ni registre des traitements fourni, ni
+double opt-in réel faute de fournisseur d'e-mail. La configuration externe de GoatCounter, les
+traitements des hébergeurs et l'identité juridique du responsable restent à compléter par le
+propriétaire. Ces limites interdisent de déclarer une conformité RGPD globale.
 
 ---
 
@@ -353,7 +356,7 @@ Produis exactement **15 diapositives**, dans cet ordre :
 11. La sécurité applicative, ce qui est en place
 12. La sécurité, ce qui arrive, avec le calendrier
 13. La protection des données, ce qui est en place
-14. L'écart assumé entre le texte et le code, et son correctif
+14. Les limites RGPD et les actions restant au propriétaire
 15. Qualité, industrialisation et feuille de route
 
 Pour **chaque** diapositive, fournis :

@@ -25,27 +25,16 @@ public class ScoringServiceTests
     };
 
     [Theory]
-    [InlineData("1080p", 1.0)]
-    [InlineData("1440p", 0.7)]
-    [InlineData("4K", 0.45)]
-    [InlineData("inconnu", 1.0)] // défaut robuste
-    public void ResolutionFactor_MapsResolution(string res, double expected)
-        => Assert.Equal(expected, ScoringService.ResolutionFactor(res));
-
-    [Fact]
-    public void EstimateFps_AtRecommendedScore_1080p60_HitsTarget()
+    [InlineData("1080p", 60)]
+    [InlineData("1440p", 60)]
+    [InlineData("4K", 144)]
+    public void EstimateFps_AtResolutionSpecificRecommendedScores_HitsTarget(string resolution, int targetFps)
     {
-        // GPU = CPU = reco, 1080p/60 → exactement la cible (facteur 1.0).
-        var fps = _svc.EstimateFps(60, 60, Req(recoGpu: 60, recoCpu: 60, fps: 60));
-        Assert.Equal(60, fps);
-    }
-
-    [Fact]
-    public void EstimateFps_1440p_AppliesResolutionFactor()
-    {
-        // 1440p applique 0.7 côté GPU → borne GPU = 60*0.7 = 42, borne CPU = 60 → min = 42.
-        var fps = _svc.EstimateFps(60, 60, Req(res: "1440p", recoGpu: 60, recoCpu: 60, fps: 60));
-        Assert.Equal(42, fps);
+        // Chaque requirement porte déjà les seuils propres à sa résolution : aucun second
+        // coefficient de résolution ne doit faire tomber une configuration recommandée.
+        var fps = _svc.EstimateFps(60, 60,
+            Req(res: resolution, recoGpu: 60, recoCpu: 60, fps: targetFps));
+        Assert.Equal(targetFps, fps);
     }
 
     [Fact]
@@ -55,6 +44,13 @@ public class ScoringServiceTests
         var fps = _svc.EstimateFps(gpuScore: 100, cpuScore: 30, Req(recoGpu: 60, recoCpu: 60, fps: 60));
         var cpuBound = (int)System.Math.Round(30.0 / 60 * 60); // = 30
         Assert.Equal(cpuBound, fps);
+    }
+
+    [Fact]
+    public void EstimateFps_PositiveMidpoint_RoundsAwayFromZeroLikeFrontendReference()
+    {
+        var fps = _svc.EstimateFps(61, 120, Req(recoGpu: 120, recoCpu: 120, fps: 60));
+        Assert.Equal(31, fps); // 61 / 120 * 60 = 30,5
     }
 
     [Fact]
@@ -120,6 +116,8 @@ public class ScoringServiceTests
         // GPU/CPU suffisants mais RAM insuffisante → pas le minimum.
         var r = _svc.Evaluate(gpuScore: 90, cpuScore: 90, ramGb: 8, Req(recoGpu: 70, recoCpu: 70, minRam: 16));
         Assert.False(r.MeetsMinimum);
+        Assert.False(r.MeetsRecommended);
+        Assert.Equal("Trop faible", r.Verdict);
     }
 
     [Fact]

@@ -19,10 +19,13 @@ public class AdminController : ControllerBase
     [HttpGet("stats")]
     public async Task<ActionResult<AdminStatsDto>> Stats()
     {
-        var paid = _db.Orders.Where(o => o.Status != OrderStatus.Pending);
+        // Seules les commandes effectivement payées ou expédiées constituent du revenu.
+        // TotalOrders reste, lui, le volume de toutes les commandes quel que soit leur statut.
+        var revenueOrders = _db.Orders
+            .Where(o => o.Status == OrderStatus.Paid || o.Status == OrderStatus.Shipped);
 
         var top = await _db.OrderItems
-            .Where(oi => oi.Order!.Status != OrderStatus.Pending)
+            .Where(oi => oi.Order!.Status == OrderStatus.Paid || oi.Order.Status == OrderStatus.Shipped)
             .GroupBy(oi => new { oi.ProductId, oi.Product!.Name })
             .Select(g => new TopProductDto
             {
@@ -39,7 +42,7 @@ public class AdminController : ControllerBase
             TotalProducts = await _db.Products.CountAsync(),
             TotalOrders = await _db.Orders.CountAsync(),
             TotalUsers = await _db.Users.CountAsync(),
-            Revenue = await paid.SumAsync(o => (decimal?)o.TotalPrice) ?? 0,
+            Revenue = await revenueOrders.SumAsync(o => (decimal?)o.TotalPrice) ?? 0,
             PendingSupport = await _db.SupportMessages.CountAsync(m => m.Status == SupportStatus.Open),
             TopProducts = top
         });

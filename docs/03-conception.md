@@ -28,24 +28,30 @@ graph TB
     subgraph ext["Services externes"]
         FTG["FreeToGame<br/>catalogue de jeux"]
         STR["Stripe<br/>environnement de test"]
-        GC["GoatCounter<br/>audience sans cookie"]
+        GC["GoatCounter<br/>audience optionnelle"]
     end
 
     SPA -->|"HTTPS"| CDN
     CDN -->|"réécriture /api/* en 200"| API
     API -->|"Entity Framework Core"| DB
     API -.->|"import en tâche de fond"| FTG
+    SPA -.->|"GET HTTPS direct<br/>découverte free-to-play"| FTG
     API -.->|"si clé configurée"| STR
     SPA -.->|"après consentement"| GC
 ```
 
 La règle de réécriture est le point clé de ce montage. Elle est appliquée côté serveur, donc le
 navigateur croit dialoguer avec une seule origine. Aucune requête entre origines n'a lieu, la
-politique de partage des ressources reste verrouillée sur l'origine de développement, et aucun
-en-tête supplémentaire n'est nécessaire.
+politique de partage des ressources de l'API FRAMEFORGE reste verrouillée sur l'origine de
+développement, et aucun en-tête supplémentaire n'est nécessaire pour ce flux. La rubrique de
+découverte FreeToGame est l'exception volontaire : React effectue un `GET` HTTPS directement vers
+l'API publique tierce, dont le CORS a été contrôlé et dont aucune clé n'est exposée.
 
-Les liens en pointillés marquent les dépendances non bloquantes. Si FreeToGame, Stripe ou GoatCounter
-sont injoignables, l'application continue de fonctionner avec un repli.
+Les liens en pointillés marquent les dépendances non bloquantes. FreeToGame a deux usages distincts :
+l'API l'utilise pour son import initial et le navigateur appelle directement son endpoint public pour
+la rubrique de découverte. Une indisponibilité de ce second flux affiche un état d'erreur isolé sans
+masquer le catalogue FRAMEFORGE. Stripe et GoatCounter restent optionnels et conditionnés à leur
+configuration respective.
 
 ---
 
@@ -101,7 +107,6 @@ une durée de vie liée à la requête, ce qui permet leur substitution dans les
 classDiagram
     class ScoringService {
         +int BottleneckGap$
-        +ResolutionFactor(string) double$
         +EstimateFps(int, int, GameRequirement) int
         +BottleneckPenalty(int, int) int
         +GamingPerformance(int, int) int
@@ -151,9 +156,7 @@ en production si la clé est absente, plutôt que de signer avec une valeur pré
 Le calcul répond à une idée simple : dans une configuration, la pièce la plus faible impose sa limite.
 
 ```
-facteurResolution   = 1,0 en 1080p, 0,7 en 1440p, 0,45 en 4K
-
-limiteGraphique     = scoreGpu / scoreGpuRecommande × fpsVise × facteurResolution
+limiteGraphique     = scoreGpu / scoreGpuRecommande × fpsVise
 limiteProcesseur    = scoreCpu / scoreCpuRecommande × fpsVise
 
 fpsEstime           = min(limiteGraphique, limiteProcesseur)
@@ -163,6 +166,12 @@ penalite            = 0 si ecart <= 25, sinon (ecart − 25) × 0,6
 
 performanceGlobale  = borne(scoreGpu × 0,7 + scoreCpu × 0,3 − penalite, 0, 100)
 ```
+
+Les seuils recommandé/minimum d'une exigence sont déjà associés à une résolution et une cible FPS.
+Un ancien coefficient supplémentaire de résolution comptait donc deux fois la difficulté. Il a été
+retiré lors de la finalisation : un GPU et un CPU exactement au seuil recommandé produisent désormais
+une estimation cohérente avec la cible FPS de cette exigence. La RAM minimale participe aux verdicts
+« minimum » et « recommandé ».
 
 Le seuil de vingt-cinq points et le coefficient de 0,6 sont des constantes assumées, choisies pour
 que la pénalité reste perceptible sans écraser le résultat. Elles sont exposées comme constantes
@@ -190,7 +199,7 @@ sequenceDiagram
         A-->>F: 400 message explicite
     else Stock disponible
         A->>D: Créer la commande en attente
-        alt Clé Stripe configurée
+        alt Mode StripeTest et clé de test configurée
             A->>S: Créer une session de paiement
             S-->>A: Identifiant et adresse de paiement
             A-->>F: Adresse de redirection
@@ -205,7 +214,10 @@ sequenceDiagram
                 A->>D: Décrémenter le stock, vider le panier
                 A-->>F: 200 commande payée
             end
-        else Mode démonstration
+        else Mode Simulation
+            A-->>F: Identifiant de commande Pending
+            F->>A: POST /api/checkout/confirm/{id}
+            A->>D: Revérifier propriétaire, statut et stock
             A->>D: Décrémenter le stock, vider le panier
             A-->>F: 200 commande payée, paiement simulé
         end
@@ -218,9 +230,10 @@ Le stock est relu **à la confirmation**, pas seulement à la création. Entre l
 acheteur a pu vider le stock. La colonne concernée porte un jeton de concurrence : deux écritures
 simultanées ne peuvent pas s'écraser, la seconde lève une exception traitée comme un conflit.
 
-En mode Stripe réel, le serveur **ne fait jamais confiance au retour du client**. La page de succès
-déclenche une relecture du statut auprès de Stripe avant toute décrémentation. Un utilisateur ne peut
-pas se déclarer payé en appelant directement l'adresse de confirmation.
+Dans les deux modes, le serveur **ne fait jamais confiance à la seule URL de retour du client** : il
+contrôle la commande, son propriétaire, son statut et le stock. En mode Stripe test, il relit en plus
+le statut auprès de Stripe avant toute décrémentation. Une clé Stripe absente ne provoque jamais un
+basculement silencieux vers la simulation.
 
 ---
 

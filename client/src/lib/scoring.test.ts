@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluate, gamingPerformance, bottleneckPenalty, resolutionFactor } from './scoring';
+import { evaluate, estimateFps, gamingPerformance, bottleneckPenalty } from './scoring';
 import type { GameRequirement } from '../api/types';
 
 const req = (over: Partial<GameRequirement> = {}): GameRequirement => ({
@@ -8,10 +8,12 @@ const req = (over: Partial<GameRequirement> = {}): GameRequirement => ({
 });
 
 describe('scoring helpers', () => {
-  it('resolutionFactor drops with resolution', () => {
-    expect(resolutionFactor('1080p')).toBe(1);
-    expect(resolutionFactor('1440p')).toBe(0.7);
-    expect(resolutionFactor('4K')).toBe(0.45);
+  it.each(['1080p', '1440p', '4K'])('hits the target at the resolution-specific recommended scores (%s)', (resolution) => {
+    const requirement = req({ resolution, targetFps: resolution === '4K' ? 144 : 60 });
+    expect(estimateFps(requirement.recoGpuScore, requirement.recoCpuScore, requirement)).toBe(requirement.targetFps);
+  });
+  it('uses the shared positive midpoint rounding reference', () => {
+    expect(estimateFps(61, 120, req({ recoGpuScore: 120, recoCpuScore: 120 }))).toBe(31);
   });
   it('bottleneckPenalty only past the 25-point gap', () => {
     expect(bottleneckPenalty(80, 78)).toBe(0);
@@ -33,6 +35,12 @@ describe('evaluate', () => {
     const r = evaluate(80, 75, 16, req());
     expect(r.meetsRecommended).toBe(true);
     expect(r.verdict).toBe('Ça tourne (recommandé)');
+  });
+  it('does not report recommended when RAM is below the requirement', () => {
+    const r = evaluate(80, 75, 8, req({ minRamGb: 16 }));
+    expect(r.meetsMinimum).toBe(false);
+    expect(r.meetsRecommended).toBe(false);
+    expect(r.verdict).toBe('Trop faible');
   });
   it('passes minimum but not recommended in between', () => {
     const r = evaluate(50, 50, 16, req());

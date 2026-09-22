@@ -45,4 +45,35 @@ public class AdminTests : IClassFixture<ApiFactory>
         });
         Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
     }
+
+    [Fact]
+    public async Task Stats_RevenueCountsPaidAndShippedButNotCancelledOrders()
+    {
+        var admin = await TestAuth.AdminClientAsync(_factory);
+        var before = await admin.GetFromJsonAsync<AdminStatsDto>("/api/admin/stats");
+        var customer = await TestAuth.NewAuthedClientAsync(_factory, "stats-statuses");
+        var products = await customer.GetFromJsonAsync<PagedResult<ProductDto>>("/api/products?pageSize=100");
+        var product = products!.Items.First(p => p.Stock >= 2);
+
+        await customer.PostAsJsonAsync("/api/cart/items", new { productId = product.Id, quantity = 1 });
+        var cancelledCheckout = await customer.PostAsync("/api/checkout", content: null);
+        var cancelled = await cancelledCheckout.Content.ReadFromJsonAsync<CheckoutResponseDto>();
+        await customer.PostAsync($"/api/orders/{cancelled!.OrderId}/cancel", content: null);
+
+        // Le panier n'a pas été consommé par l'annulation : une seconde commande peut être
+        // créée puis confirmée par le serveur en mode démonstration.
+        var paidCheckout = await customer.PostAsync("/api/checkout", content: null);
+        var paid = await paidCheckout.Content.ReadFromJsonAsync<CheckoutResponseDto>();
+        var confirmation = await customer.PostAsync($"/api/checkout/confirm/{paid!.OrderId}", content: null);
+        Assert.Equal(HttpStatusCode.OK, confirmation.StatusCode);
+
+        var afterPaid = await admin.GetFromJsonAsync<AdminStatsDto>("/api/admin/stats");
+        Assert.Equal(before!.TotalOrders + 2, afterPaid!.TotalOrders);
+        Assert.Equal(before.Revenue + product.Price, afterPaid.Revenue);
+
+        var shipped = await admin.PutAsJsonAsync($"/api/admin/orders/{paid.OrderId}/status", new { status = "Shipped" });
+        Assert.Equal(HttpStatusCode.OK, shipped.StatusCode);
+        var afterShipped = await admin.GetFromJsonAsync<AdminStatsDto>("/api/admin/stats");
+        Assert.Equal(afterPaid.Revenue, afterShipped!.Revenue);
+    }
 }

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using api.Data;
 using api.Models;
 using Microsoft.EntityFrameworkCore;
@@ -11,44 +10,39 @@ public class BuildService
     private readonly AppDbContext _db;
     public BuildService(AppDbContext db) => _db = db;
 
-    /// <summary>Le moins cher d'une catégorie dont le PerfScore atteint le seuil ; sinon le plus puissant dispo.</summary>
+    /// <summary>
+    /// Le moins cher en stock atteignant le seuil ; sinon le plus puissant en stock.
+    /// Un produit hors stock n'est repris qu'en dernier recours si toute la catégorie est indisponible.
+    /// </summary>
     private async Task<Product?> CheapestMeeting(string slug, int minScore)
     {
         var inCat = _db.Products.Include(p => p.Category).Where(p => p.Category!.Slug == slug);
-        var match = await inCat.Where(p => p.PerfScore >= minScore)
+        var available = inCat.Where(p => p.Stock > 0);
+        var match = await available.Where(p => p.PerfScore >= minScore)
             .OrderBy(p => p.Price).FirstOrDefaultAsync();
-        return match ?? await inCat.OrderByDescending(p => p.PerfScore).FirstOrDefaultAsync();
+        return match
+            ?? await available.OrderByDescending(p => p.PerfScore).ThenBy(p => p.Price).FirstOrDefaultAsync()
+            ?? await inCat.Where(p => p.PerfScore >= minScore).OrderBy(p => p.Price).FirstOrDefaultAsync()
+            ?? await inCat.OrderByDescending(p => p.PerfScore).ThenBy(p => p.Price).FirstOrDefaultAsync();
     }
 
-    private Task<Product?> Cheapest(string slug) =>
-        _db.Products.Include(p => p.Category)
-            .Where(p => p.Category!.Slug == slug)
-            .OrderBy(p => p.Price).FirstOrDefaultAsync();
+    private async Task<Product?> Cheapest(string slug)
+    {
+        var inCat = _db.Products.Include(p => p.Category).Where(p => p.Category!.Slug == slug);
+        return await inCat.Where(p => p.Stock > 0).OrderBy(p => p.Price).FirstOrDefaultAsync()
+            ?? await inCat.OrderBy(p => p.Price).FirstOrDefaultAsync();
+    }
 
     private Task<List<Product>> CatalogAsync(string slug) =>
         _db.Products.Include(p => p.Category)
             .Where(p => p.Category!.Slug == slug)
             .OrderBy(p => p.Price).ToListAsync();
 
-    /// <summary>Lit une clé des specs JSON d'un produit (ex. "Socket", "Ram", "Type", "Tdp", "Wattage").</summary>
-    private static string? Spec(Product? p, string key)
+    private static List<Product> PreferInStock(IEnumerable<Product> products)
     {
-        if (string.IsNullOrWhiteSpace(p?.Specs)) return null;
-        try
-        {
-            using var doc = JsonDocument.Parse(p!.Specs!);
-            return doc.RootElement.TryGetProperty(key, out var v)
-                ? (v.ValueKind == JsonValueKind.String ? v.GetString() : v.ToString())
-                : null;
-        }
-        catch { return null; }
-    }
-
-    private static int Digits(string? s)
-    {
-        if (s is null) return 0;
-        var d = new string(s.Where(char.IsDigit).ToArray());
-        return int.TryParse(d, out var n) ? n : 0;
+        var all = products.ToList();
+        var available = all.Where(p => p.Stock > 0).ToList();
+        return available.Count > 0 ? available : all;
     }
 
     /// <summary>Build complet recommandé pour un requirement de jeu — COHÉRENT (assemblable) :
@@ -60,28 +54,36 @@ public class BuildService
 
         // Carte mère : la moins chère qui atteint le tier ET dont le socket correspond au CPU.
         var mobos = await CatalogAsync("carte-mere");
-        var cpuSocket = Spec(cpu, "Socket");
-        var mobo = mobos.Where(m => m.PerfScore >= 60 && (cpuSocket == null || Spec(m, "Socket") == cpuSocket))
+        var cpuSocket = ProductSpecs.Read(cpu, "Socket");
+        var compatibleMobos = mobos
+            .Where(m => cpuSocket == null || ProductSpecs.Read(m, "Socket") == cpuSocket)
+            .ToList();
+        var mobo = PreferInStock(compatibleMobos.Where(m => m.PerfScore >= 60))
                        .OrderBy(m => m.Price).FirstOrDefault()
-                   ?? mobos.Where(m => cpuSocket == null || Spec(m, "Socket") == cpuSocket)
-                       .OrderBy(m => m.Price).FirstOrDefault()
-                   ?? mobos.OrderByDescending(m => m.PerfScore).FirstOrDefault();
+                   ?? PreferInStock(compatibleMobos).OrderBy(m => m.Price).FirstOrDefault()
+                   ?? PreferInStock(mobos).OrderByDescending(m => m.PerfScore).ThenBy(m => m.Price).FirstOrDefault();
 
-        // RAM : suffisante pour le jeu ET du type de la carte mère.
+        // RAM : capacité suffisante pour le jeu ET type compatible avec la carte mère.
         var rams = await CatalogAsync("ram");
-        var minRamTier = req.MinRamGb >= 16 ? 70 : 50;
-        var moboRam = Spec(mobo, "Ram");
-        var ram = rams.Where(r => r.PerfScore >= minRamTier && (moboRam == null || Spec(r, "Type") == moboRam))
-                      .OrderBy(r => r.Price).FirstOrDefault()
-                  ?? rams.Where(r => moboRam == null || Spec(r, "Type") == moboRam)
-                      .OrderBy(r => r.Price).FirstOrDefault()
-                  ?? rams.OrderByDescending(r => r.PerfScore).FirstOrDefault();
+        var moboRam = ProductSpecs.Read(mobo, "Ram");
+        var compatibleRams = rams
+            .Where(r => moboRam == null || ProductSpecs.Read(r, "Type") == moboRam)
+            .ToList();
+        var sufficientRams = compatibleRams
+            .Where(r => ProductSpecs.ReadNumber(r, "Capacity") >= req.MinRamGb);
+        var ram = PreferInStock(sufficientRams).OrderBy(r => r.Price).FirstOrDefault()
+                  ?? PreferInStock(compatibleRams)
+                      .OrderByDescending(r => ProductSpecs.ReadNumber(r, "Capacity")).ThenBy(r => r.Price).FirstOrDefault()
+                  ?? PreferInStock(rams)
+                      .OrderByDescending(r => ProductSpecs.ReadNumber(r, "Capacity")).ThenBy(r => r.Price).FirstOrDefault();
 
         // Alim : couvre la conso estimée (GPU TDP + 150 W, marge ×1.3).
         var psus = await CatalogAsync("alimentation");
-        var need = (int)Math.Ceiling((Digits(Spec(gpu, "Tdp")) + 150) * 1.3);
-        var psu = psus.Where(p => Digits(Spec(p, "Wattage")) >= need).OrderBy(p => p.Price).FirstOrDefault()
-                  ?? psus.OrderByDescending(p => Digits(Spec(p, "Wattage"))).FirstOrDefault();
+        var need = (int)Math.Ceiling((ProductSpecs.ReadNumber(gpu, "Tdp") + 150) * 1.3);
+        var psu = PreferInStock(psus.Where(p => ProductSpecs.ReadNumber(p, "Wattage") >= need))
+                      .OrderBy(p => p.Price).FirstOrDefault()
+                  ?? PreferInStock(psus)
+                      .OrderByDescending(p => ProductSpecs.ReadNumber(p, "Wattage")).ThenBy(p => p.Price).FirstOrDefault();
 
         var parts = new List<Product?>
         {
@@ -90,6 +92,16 @@ public class BuildService
         return parts.Where(p => p is not null).Cast<Product>().ToList();
     }
 
-    /// <summary>GPU le moins cher qui atteint le seuil recommandé (pour suggestion d'upgrade).</summary>
-    public Task<Product?> UpgradeFor(string slug, int recoScore) => CheapestMeeting(slug, recoScore);
+    /// <summary>
+    /// Composant disponible le moins cher qui atteint réellement le seuil recommandé.
+    /// Une suggestion d'upgrade trop faible ou hors stock serait trompeuse : dans ce cas, aucun
+    /// substitut n'est renvoyé.
+    /// </summary>
+    public Task<Product?> UpgradeFor(string slug, int recoScore) =>
+        _db.Products.Include(product => product.Category)
+            .Where(product => product.Category!.Slug == slug
+                && product.Stock > 0
+                && product.PerfScore >= recoScore)
+            .OrderBy(product => product.Price)
+            .FirstOrDefaultAsync();
 }

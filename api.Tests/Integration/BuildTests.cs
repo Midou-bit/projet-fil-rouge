@@ -89,6 +89,40 @@ public class BuildTests : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task Check_RejectsProductsFromWrongCpuOrGpuCategory()
+    {
+        var client = _factory.CreateClient();
+        var games = await WaitForGamesAsync(client);
+        var ram = (await client.GetFromJsonAsync<PagedResult<ProductDto>>("/api/products?category=ram&pageSize=1"))!.Items.First();
+        var cpu = (await client.GetFromJsonAsync<PagedResult<ProductDto>>("/api/products?category=cpu&pageSize=1"))!.Items.First();
+        var gpu = (await client.GetFromJsonAsync<PagedResult<ProductDto>>("/api/products?category=gpu&pageSize=1"))!.Items.First();
+
+        var wrongGpu = await client.PostAsJsonAsync("/api/check", new
+        {
+            cpuId = cpu.Id,
+            gpuId = ram.Id,
+            gameId = games[0].Id,
+            resolution = "1080p",
+            targetFps = 60,
+            ramGb = 16,
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, wrongGpu.StatusCode);
+
+        var wrongCpu = await client.PostAsJsonAsync("/api/check", new
+        {
+            cpuId = ram.Id,
+            gpuId = gpu.Id,
+            gameId = games[0].Id,
+            resolution = "1080p",
+            targetFps = 60,
+            ramGb = 16,
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, wrongCpu.StatusCode);
+    }
+
+    [Fact]
     public async Task BuildCalc_WithoutGame_ReturnsGenericBars()
     {
         var client = _factory.CreateClient();

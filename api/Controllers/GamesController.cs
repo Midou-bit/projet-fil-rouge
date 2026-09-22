@@ -1,7 +1,9 @@
 using api.Data;
 using api.DTOs;
 using api.Services;
+using api.Security;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace api.Controllers;
@@ -37,22 +39,34 @@ public class GamesController : ControllerBase
 
     /// <summary>Mode "je veux jouer à X" : build complet recommandé pour un jeu/résolution/fps.</summary>
     [HttpGet("{id:int}/build")]
+    [EnableRateLimiting(RateLimitPolicies.Compute)]
     public async Task<ActionResult<BuildRecommendationDto>> GetBuild(
         int id, [FromQuery] string resolution = "1080p", [FromQuery] int fps = 60)
     {
+        if (resolution is not ("1080p" or "1440p" or "4K"))
+            return BadRequest(new { message = "Résolution invalide. Valeurs autorisées : 1080p, 1440p, 4K." });
+        if (fps is not (60 or 144))
+            return BadRequest(new { message = "Cible FPS invalide. Valeurs autorisées : 60, 144." });
+
         var game = await _db.Games.Include(g => g.Requirements).FirstOrDefaultAsync(g => g.Id == id);
         if (game is null) return NotFound();
 
-        var req = game.Requirements.FirstOrDefault(r => r.Resolution == resolution && r.TargetFps == fps)
-                  ?? game.Requirements.OrderBy(r => r.RecoGpuScore).FirstOrDefault();
-        if (req is null) return NotFound(new { message = "Aucun prérequis défini pour ce jeu." });
+        var req = game.Requirements.FirstOrDefault(r =>
+            r.Resolution == resolution && r.TargetFps == fps);
+        if (req is null) return NotFound(new { message = "Aucun prérequis défini pour cette résolution et cette cible FPS." });
 
         var parts = await _builds.RecommendBuild(req);
         var gpu = parts.FirstOrDefault(p => p.Category?.Slug == "gpu");
         var cpu = parts.FirstOrDefault(p => p.Category?.Slug == "cpu");
+        var ram = parts.FirstOrDefault(p => p.Category?.Slug == "ram");
         var total = parts.Sum(p => p.Price);
 
-        var result = _scoring.Evaluate(gpu?.PerfScore ?? 0, cpu?.PerfScore ?? 0, 32, req, total);
+        var result = _scoring.Evaluate(
+            gpu?.PerfScore ?? 0,
+            cpu?.PerfScore ?? 0,
+            ProductSpecs.ReadNumber(ram, "Capacity"),
+            req,
+            total);
 
         return Ok(new BuildRecommendationDto
         {

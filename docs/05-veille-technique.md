@@ -117,9 +117,11 @@ doit être conçu en même temps que le cas nominal.
 | Plausible | Sans cookie et conforme, mais gratuit trente jours seulement. Retenu dans une première version, puis abandonné |
 | Matomo auto-hébergé | Conforme, mais impose un serveur supplémentaire, contraire à la contrainte de coût nul |
 
-GoatCounter est sans cookie, sans identifiant persistant, hébergé en Europe, et gratuit pour un usage
-non commercial. Le chargement reste conditionné au consentement explicite, alors même que l'outil ne
-dépose rien : c'est un choix de cohérence avec la bannière présentée à l'utilisateur.
+L'intégration prépare le chargement de GoatCounter sans définir elle-même de cookie ni d'identifiant
+applicatif. Elle reste néanmoins désactivée tant qu'aucun code de site externe n'est configuré et son
+script n'est chargé qu'après consentement explicite. La localisation, les conditions du fournisseur
+et les données effectivement reçues devront être vérifiées au moment de créer ce compte externe ; le
+dépôt seul ne permet pas de les garantir.
 
 ---
 
@@ -149,9 +151,9 @@ Le point de veille utile ici n'est pas le choix du prestataire mais **la vérifi
 Une implémentation naïve fait confiance au retour du navigateur sur la page de succès. Un utilisateur
 peut alors appeler directement l'adresse de confirmation et se déclarer payé.
 
-La mise en œuvre relit le statut réel de la session auprès de Stripe avant toute décrémentation de
-stock. C'est la recommandation constante de la documentation du prestataire, et c'est la différence
-entre une démonstration et une implémentation défendable.
+En mode `StripeTest`, la mise en œuvre relit le statut de la session de test auprès de Stripe avant
+toute décrémentation de stock. En mode `Simulation`, aucune transaction financière n'a lieu mais une
+confirmation serveur reste obligatoire. Aucun paiement Stripe test abouti n'est prouvé par le dépôt.
 
 ---
 

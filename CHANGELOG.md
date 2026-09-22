@@ -3,6 +3,53 @@
 Journal des évolutions de FrameForge. Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/),
 versions selon [SemVer](https://semver.org/lang/fr/). Entrées par ordre décroissant.
 
+## [1.4.0] — 2026-09-22 — Finalisation technique RNCP
+
+Cette entrée décrit uniquement les améliorations réalisées pendant la phase de finalisation ; elle
+ne les attribue pas rétroactivement aux versions précédentes.
+
+### Ajouté
+- **API tierce frontend C17** : rubrique « Découverte Free-to-Play en direct » qui appelle
+  FreeToGame directement depuis React, avec contrat typé, validation de réponse, délai maximal,
+  cache, états chargement/erreur/vide et tests réseau simulés.
+- **Protection des données** : export JSON propriétaire (`GET /api/account/export`), préférences de
+  confidentialité modifiables, consentement daté/versionné et politique réécrite factuellement.
+- **Exploitation API** : health check API/SQLite à réponse minimale, rate limiting des routes
+  sensibles et journaux structurés sans contenu privé ni secret.
+- Plans de tests frontend/backend et documentation du flux FreeToGame direct.
+
+### Corrigé
+- Isolation du cache React Query et du panier lors d'un changement de compte.
+- Checkout : aucun succès déduit de l'URL ; confirmation serveur obligatoire en simulation,
+  vérification Stripe en mode `StripeTest`, conservation d'une session Stripe en attente et
+  idempotence de la confirmation.
+- Scoring : suppression du double facteur de résolution, prise en compte de la RAM dans le verdict,
+  parité de cas de référence frontend/backend, validation des catégories CPU/GPU et préférence pour
+  le stock disponible.
+- Tableau de bord : chiffre d'affaires limité aux commandes `Paid` et `Shipped`.
+- Accessibilité ciblée : labels, noms accessibles, régions de chargement, lien d'évitement, focus
+  visible, dialogues et respect du mouvement réduit. Aucun audit RGAA complet n'est revendiqué.
+- SEO : canonical, `noindex` des routes privées/404, sitemap/robots cohérents et métadonnées sociales.
+
+### Sécurité et dépendances
+- CSP et en-têtes de sécurité alignés pour Netlify et nginx ; clé JWT robuste obligatoire en
+  production ; validation renforcée des DTO et paramètres.
+- Audits finaux : **0 vulnérabilité npm** (racine, frontend complet et production) et **0 package
+  NuGet vulnérable** détecté pour l'API et les tests.
+
+### Qualité et industrialisation
+- Frontend : **118 tests sur 26 fichiers**, **62,26 % de lignes** couvertes ; seuil CI à 50 %.
+- Backend : **87 tests**, **80,51 % de lignes**, **52,83 % de branches** et **85,43 % de méthodes**.
+- CI enrichie avec couvertures et seuils, audits de dépendances, artefacts et build Docker.
+- Les deux images Docker ont été construites et l'environnement Compose a été exécuté localement les
+  21 et 22 septembre 2026 : frontend, proxy `/api`, SQLite et `/health` ont répondu en HTTP 200.
+
+### Limites explicites
+- Aucun paiement Stripe par carte test n'a été réalisé ; aucun webhook signé n'est configuré.
+- GoatCounter reste inactif sans compte et code de site externes.
+- Lighthouse et un audit RGAA complet n'ont pas été exécutés ; aucun score ni conformité n'est inventé.
+- La branche de finalisation n'a pas été poussée ni vérifiée sur Netlify/Render.
+
 ## [1.3.0] — 2026-08-25 — Finitions de production
 
 ### Ajouté

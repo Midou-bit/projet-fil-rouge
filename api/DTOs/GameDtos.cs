@@ -39,12 +39,12 @@ public class BuildRecommendationDto
 /// <summary>Vérificateur : { cpuId, gpuId, gameId, resolution, fps }.</summary>
 public class CheckRequestDto
 {
-    [Required] public int CpuId { get; set; }
-    [Required] public int GpuId { get; set; }
-    [Required] public int GameId { get; set; }
-    public string Resolution { get; set; } = "1080p";
-    public int TargetFps { get; set; } = 60;
-    public int RamGb { get; set; } = 16;
+    [Range(1, int.MaxValue)] public int CpuId { get; set; }
+    [Range(1, int.MaxValue)] public int GpuId { get; set; }
+    [Range(1, int.MaxValue)] public int GameId { get; set; }
+    [Required, AllowedValues("1080p", "1440p", "4K")] public string Resolution { get; set; } = "1080p";
+    [AllowedValues(60, 144)] public int TargetFps { get; set; } = 60;
+    [Range(1, 256)] public int RamGb { get; set; } = 16;
 }
 
 public class CheckResultDto
@@ -75,8 +75,8 @@ public class ScoreSummaryDto
 /// <summary>Builder interactif : l'utilisateur envoie sa sélection de composants + jeu visé.</summary>
 public class BuildCalcRequestDto
 {
-    public List<int> ProductIds { get; set; } = new();
-    public int? GameId { get; set; }
-    public string Resolution { get; set; } = "1080p";
-    public int TargetFps { get; set; } = 60;
+    [Required, MinLength(1), MaxLength(20)] public List<int> ProductIds { get; set; } = new();
+    [Range(1, int.MaxValue)] public int? GameId { get; set; }
+    [Required, AllowedValues("1080p", "1440p", "4K")] public string Resolution { get; set; } = "1080p";
+    [AllowedValues(60, 144)] public int TargetFps { get; set; } = 60;
 }

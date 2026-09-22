@@ -18,12 +18,15 @@ export default function AdminDashboard() {
 
   if (isError) {
     return (
-      <div className="center" style={{ padding: '2rem' }}>
+      <div className="center" role="alert" style={{ padding: '2rem' }}>
         <p className="muted">Impossible de charger les statistiques. Réessaie dans un instant.</p>
       </div>
     );
   }
-  if (isLoading || !stats) return <div className="center" style={{ padding: '2rem' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>;
+  if (isLoading || !stats) return <div className="center" role="status" aria-live="polite" style={{ padding: '2rem' }}>
+    <div className="spinner" aria-hidden="true" style={{ margin: '0 auto' }} />
+    <span className="sr-only">Chargement des statistiques…</span>
+  </div>;
 
   return (
     <div className="stack">

@@ -12,8 +12,8 @@
 #  ou :  powershell -ExecutionPolicy Bypass -File detect-pc.ps1
 # ============================================================================
 
-# >> Quand ton site sera EN LIGNE, remplace cette adresse par ton URL (ex : https://mon-site.fr)
-$SiteUrl = 'http://localhost:5173'
+# Adresse publique de FrameForge : le resultat s'ouvre directement sur le site deploye.
+$SiteUrl = 'https://frameforge-build.netlify.app'
 
 $ErrorActionPreference = 'SilentlyContinue'
 

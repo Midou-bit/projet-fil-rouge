@@ -13,7 +13,13 @@ namespace api.Controllers;
 public class CategoriesController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public CategoriesController(AppDbContext db) => _db = db;
+    private readonly ILogger<CategoriesController> _logger;
+
+    public CategoriesController(AppDbContext db, ILogger<CategoriesController> logger)
+    {
+        _db = db;
+        _logger = logger;
+    }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CategoryDto>>> GetAll()
@@ -38,6 +44,10 @@ public class CategoriesController : ControllerBase
         var c = new Category { Name = dto.Name, Slug = dto.Slug };
         _db.Categories.Add(c);
         await _db.SaveChangesAsync();
+        _logger.LogInformation(
+            "Catégorie créée. CategoryId={CategoryId} TraceId={TraceId}",
+            c.Id,
+            HttpContext.TraceIdentifier);
         return CreatedAtAction(nameof(GetById), new { id = c.Id }, c.ToDto());
     }
 
@@ -52,6 +62,10 @@ public class CategoriesController : ControllerBase
         c.Name = dto.Name;
         c.Slug = dto.Slug;
         await _db.SaveChangesAsync();
+        _logger.LogInformation(
+            "Catégorie modifiée. CategoryId={CategoryId} TraceId={TraceId}",
+            c.Id,
+            HttpContext.TraceIdentifier);
         return Ok(c.ToDto());
     }
 
@@ -65,6 +79,10 @@ public class CategoriesController : ControllerBase
             return Conflict(new { message = "Catégorie non vide : déplacez ou supprimez ses produits d'abord." });
         _db.Categories.Remove(c);
         await _db.SaveChangesAsync();
+        _logger.LogInformation(
+            "Catégorie supprimée. CategoryId={CategoryId} TraceId={TraceId}",
+            id,
+            HttpContext.TraceIdentifier);
         return NoContent();
     }
 }

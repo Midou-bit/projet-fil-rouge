@@ -41,7 +41,7 @@ export default function AdminCategories() {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', minWidth: 380 }}>
           <thead>
             <tr className="muted" style={{ textAlign: 'left', fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
-              <th style={{ padding: '0.6rem' }}>Nom</th><th>Slug</th><th>Produits</th><th></th>
+              <th scope="col" style={{ padding: '0.6rem' }}>Nom</th><th scope="col">Slug</th><th scope="col">Produits</th><th scope="col"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
@@ -49,7 +49,7 @@ export default function AdminCategories() {
               <tr key={c.id} style={{ borderTop: '1px solid var(--border)' }}>
                 <td style={{ padding: '0.5rem 0.6rem' }}>
                   {editId === c.id
-                    ? <input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                    ? <input aria-label={`Nouveau nom de la catégorie ${c.name}`} value={editName} onChange={(e) => setEditName(e.target.value)} />
                     : c.name}
                 </td>
                 <td className="mono muted">{c.slug}</td>
@@ -57,13 +57,17 @@ export default function AdminCategories() {
                 <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                   {editId === c.id ? (
                     <>
-                      <button className="btn btn-sm btn-cyan" onClick={() => saveEdit(c.id)}>OK</button>
-                      <button className="btn btn-sm btn-ghost" onClick={() => setEditId(null)}>✕</button>
+                      <button className="btn btn-sm btn-cyan" aria-label={`Enregistrer la catégorie ${c.name}`}
+                        onClick={() => saveEdit(c.id)}>OK</button>
+                      <button className="btn btn-sm btn-ghost" aria-label={`Annuler la modification de ${c.name}`}
+                        onClick={() => setEditId(null)}>✕</button>
                     </>
                   ) : (
                     <>
-                      <button className="btn btn-sm btn-ghost" onClick={() => { setEditId(c.id); setEditName(c.name); }}>✏️</button>
-                      <button className="btn btn-sm btn-danger" onClick={() => remove(c)}>🗑️</button>
+                      <button className="btn btn-sm btn-ghost" aria-label={`Modifier ${c.name}`}
+                        onClick={() => { setEditId(c.id); setEditName(c.name); }}>✏️</button>
+                      <button className="btn btn-sm btn-danger" aria-label={`Supprimer ${c.name}`}
+                        onClick={() => remove(c)}>🗑️</button>
                     </>
                   )}
                 </td>
@@ -75,7 +79,7 @@ export default function AdminCategories() {
 
       <form onSubmit={create} className="surface stack" style={{ padding: '1.2rem' }}>
         <h3 style={{ marginTop: 0 }}>Nouvelle catégorie</h3>
-        <div><label>Nom</label><input required value={name} onChange={(e) => setName(e.target.value)} /></div>
+        <div><label htmlFor="new-category-name">Nom</label><input id="new-category-name" required value={name} onChange={(e) => setName(e.target.value)} /></div>
         {name && <p className="muted mono" style={{ fontSize: '0.78rem' }}>slug : {slugify(name)}</p>}
         <button className="btn btn-action">Créer</button>
       </form>

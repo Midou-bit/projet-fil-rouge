@@ -56,28 +56,30 @@ export default function PlayWhat() {
 
       <div className="surface row wrap" style={{ padding: '1rem', gap: '1rem', alignItems: 'end' }}>
         <div style={{ flex: '1 1 220px' }}>
-          <label>Jeu</label>
+          <label htmlFor="play-game">Jeu</label>
           {games.length === 0 ? (
             <p className="muted" style={{ margin: '0.4rem 0 0', fontSize: '0.85rem' }}>Catalogue de jeux en cours de chargement…</p>
           ) : (
-            <select value={gameId ?? ''} onChange={(e) => setGameId(Number(e.target.value))}>
+            <select id="play-game" value={gameId ?? ''} onChange={(e) => setGameId(Number(e.target.value))}>
               {games.map((g) => <option key={g.id} value={g.id}>{g.title} ({g.releaseYear})</option>)}
             </select>
           )}
         </div>
         <div>
-          <label>Résolution</label>
-          <div className="row" style={{ gap: '0.4rem' }}>
+          <span className="control-label" id="play-resolution-label">Résolution</span>
+          <div className="row" role="group" aria-labelledby="play-resolution-label" style={{ gap: '0.4rem' }}>
             {RESOS.map((r) => (
-              <button key={r} className={`btn btn-sm ${reso === r ? 'btn-cyan' : 'btn-ghost'}`} onClick={() => setReso(r)}>{r}</button>
+              <button type="button" key={r} aria-pressed={reso === r}
+                className={`btn btn-sm ${reso === r ? 'btn-cyan' : 'btn-ghost'}`} onClick={() => setReso(r)}>{r}</button>
             ))}
           </div>
         </div>
         <div>
-          <label>FPS visés</label>
-          <div className="row" style={{ gap: '0.4rem' }}>
+          <span className="control-label" id="play-fps-label">FPS visés</span>
+          <div className="row" role="group" aria-labelledby="play-fps-label" style={{ gap: '0.4rem' }}>
             {FPSES.map((f) => (
-              <button key={f} className={`btn btn-sm ${fps === f ? 'btn-cyan' : 'btn-ghost'}`} onClick={() => setFps(f)}>{f} fps</button>
+              <button type="button" key={f} aria-pressed={fps === f}
+                className={`btn btn-sm ${fps === f ? 'btn-cyan' : 'btn-ghost'}`} onClick={() => setFps(f)}>{f} fps</button>
             ))}
           </div>
         </div>
@@ -104,7 +106,10 @@ export default function PlayWhat() {
       )}
 
       {loading ? (
-        <div className="center" style={{ padding: '3rem' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>
+        <div className="center" role="status" aria-live="polite" style={{ padding: '3rem' }}>
+          <div className="spinner" aria-hidden="true" style={{ margin: '0 auto' }} />
+          <span className="sr-only">Calcul du build recommandé…</span>
+        </div>
       ) : isError ? (
         <div className="surface center" style={{ padding: '2rem', marginTop: '1.5rem' }}>
           <p className="muted">Impossible de calculer le build recommandé pour ce jeu. Réessaie ou change de jeu.</p>

@@ -3,11 +3,13 @@ import { Link, Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import ErrorBoundary from './ErrorBoundary';
 import CookieBanner from './CookieBanner';
+import PrivacyPreferences from './PrivacyPreferences';
 
 function PageFallback() {
   return (
-    <div className="container center" style={{ padding: '4rem' }}>
-      <div className="spinner" style={{ margin: '0 auto' }} />
+    <div className="container center" role="status" aria-live="polite" style={{ padding: '4rem' }}>
+      <div className="spinner" aria-hidden="true" style={{ margin: '0 auto' }} />
+      <span className="sr-only">Chargement de la page…</span>
     </div>
   );
 }
@@ -15,8 +17,10 @@ function PageFallback() {
 export default function Layout() {
   return (
     <>
+      <a href="#main-content" className="skip-link">Aller au contenu principal</a>
       <Navbar />
-      <main style={{ minHeight: 'calc(100vh - 64px - 120px)', padding: '2rem 0 3rem' }}>
+      <main id="main-content" tabIndex={-1}
+        style={{ minHeight: 'calc(100vh - 64px - 120px)', padding: '2rem 0 3rem' }}>
         <ErrorBoundary>
           <Suspense fallback={<PageFallback />}>
             <Outlet />
@@ -28,7 +32,7 @@ export default function Layout() {
           <div>
             <strong style={{ fontFamily: 'var(--font-title)', letterSpacing: '0.06em' }}>FRAME<span style={{ color: 'var(--accent-cyan)' }}>FORGE</span></strong>
             <p className="muted" style={{ fontSize: '0.82rem', margin: '0.3rem 0 0' }}>
-              Projet pédagogique — boutique simulée, FPS estimés par modèle, paiement Stripe test.
+              Projet pédagogique — boutique et paiement simulés, FPS estimés par modèle.
             </p>
           </div>
           <div className="row wrap" style={{ gap: '1.2rem', fontSize: '0.88rem' }}>
@@ -38,6 +42,7 @@ export default function Layout() {
             <Link to="/contact">Contact</Link>
             <Link to="/confidentialite">Confidentialité</Link>
             <Link to="/conditions">Conditions & mentions légales</Link>
+            <PrivacyPreferences />
           </div>
         </div>
       </footer>

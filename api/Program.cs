@@ -1,9 +1,14 @@
+using System.Security.Claims;
 using api.Data;
+using api.Health;
 using api.Models;
+using api.Security;
 using api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -17,7 +22,7 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
 // --- Identity + rôles ---
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(opt =>
     {
-        // Politique de mot de passe conforme aux recommandations CNIL : minimum 12 caractères
+        // Politique de mot de passe applicative renforcée : minimum 12 caractères
         // avec les 4 types (minuscule, majuscule, chiffre, caractère spécial). Couplé au
         // verrouillage de compte ci-dessous (anti-bruteforce).
         opt.Password.RequiredLength = 12;
@@ -38,6 +43,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(opt =>
 
 // --- JWT ---
 var jwt = builder.Configuration.GetSection("Jwt");
+JwtKeyProvider.ValidateConfiguration(builder.Configuration);
 var signingKey = JwtKeyProvider.Resolve(builder.Configuration, builder.Environment);
 builder.Services.AddAuthentication(opt =>
     {
@@ -54,7 +60,26 @@ builder.Services.AddAuthentication(opt =>
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwt["Issuer"],
             ValidAudience = jwt["Audience"],
-            IssuerSigningKey = signingKey
+            IssuerSigningKey = signingKey,
+            ClockSkew = TimeSpan.FromMinutes(1)
+        };
+        opt.Events = new JwtBearerEvents
+        {
+            // Un JWT correctement signé ne doit pas survivre à la suppression de son compte.
+            // Aucun détail n'est renvoyé au client : l'authentification échoue simplement.
+            OnTokenValidated = async context =>
+            {
+                var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrWhiteSpace(userId))
+                {
+                    context.Fail("Jeton sans sujet utilisateur.");
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                if (!await db.Users.AsNoTracking().AnyAsync(user => user.Id == userId))
+                    context.Fail("Compte utilisateur introuvable.");
+            },
         };
     });
 
@@ -65,6 +90,7 @@ builder.Services.AddAuthorization();
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {
     o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    o.ForwardLimit = 1;
     o.KnownNetworks.Clear();
     o.KnownProxies.Clear();
 });
@@ -74,6 +100,22 @@ builder.Services.AddScoped<ScoringService>();
 builder.Services.AddScoped<BuildService>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<CatalogImportService>();
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database");
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = RateLimitPolicies.WriteRejectedResponseAsync;
+    options.AddPolicy(RateLimitPolicies.Login, context =>
+        RateLimitPolicies.CreateFixedWindowPartition(context, RateLimitPolicies.Login, 10, 60));
+    options.AddPolicy(RateLimitPolicies.Register, context =>
+        RateLimitPolicies.CreateFixedWindowPartition(context, RateLimitPolicies.Register, 5, 600));
+    options.AddPolicy(RateLimitPolicies.Support, context =>
+        RateLimitPolicies.CreateFixedWindowPartition(context, RateLimitPolicies.Support, 5, 600));
+    options.AddPolicy(RateLimitPolicies.Compute, context =>
+        RateLimitPolicies.CreateFixedWindowPartition(context, RateLimitPolicies.Compute, 30, 60));
+});
 
 // --- CORS pour le front Vite ---
 const string CorsPolicy = "frontend";
@@ -181,9 +223,14 @@ app.Use(async (context, next) =>
 });
 
 app.UseCors(CorsPolicy);
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = HealthResponseWriter.WriteAsync,
+});
 
 app.Run();
 

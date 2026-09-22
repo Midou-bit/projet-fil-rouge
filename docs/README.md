@@ -22,6 +22,9 @@ Le dossier contient aussi un support de soutenance :
 |---|---|
 | [07. Prompt de génération du support d'oral](07-prompt-oral.md) | Prompt autoporteur, à donner à un outil de génération de présentation. Contient l'inventaire factuel vérifié, la charte graphique du projet, le plan minuté sur vingt minutes et le scénario de démonstration live. |
 | [08. Texte d'oral](08-texte-oral.md) | Script de soutenance en dix sections, rédigé pour être prononcé. Chaque section porte les points à reporter sur les diapositives et le bloc de compétences visé. |
+| [09. Plan de tests frontend](09-plan-tests-frontend.md) | Traçabilité des parcours frontend réellement automatisés et métriques de couverture. |
+| [10. Plan de tests backend](10-plan-tests-backend.md) | Traçabilité des tests unitaires/intégration API et métriques Cobertura. |
+| [11. API tierce frontend](11-api-tierce-frontend.md) | Contrat, sécurité, CORS, résilience et preuves de l'appel FreeToGame direct depuis React. |
 
 Les compétences relatives au RGPD et à la CNIL sont traitées dans le [cahier des
 charges](01-cahier-des-charges.md#6-contraintes-reglementaires) et mises en œuvre dans l'application,
