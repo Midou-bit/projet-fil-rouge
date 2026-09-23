@@ -5,7 +5,7 @@ const validGame = {
   id: 42,
   title: 'Test Arena',
   thumbnail: 'https://www.freetogame.com/g/42/thumbnail.jpg',
-  short_description: 'Un jeu de test free-to-play.',
+  short_description: 'This English API description must never be shown.',
   genre: 'Shooter',
   platform: 'PC (Windows)',
   publisher: 'Studio',
@@ -39,7 +39,7 @@ describe('FreeToGame API client', () => {
       id: 42,
       title: 'Test Arena',
       thumbnail: 'https://www.freetogame.com/g/42/thumbnail.jpg',
-      shortDescription: 'Un jeu de test free-to-play.',
+      shortDescription: 'Jeu gratuit de type Shooter disponible sur PC.',
       genre: 'Shooter',
       platform: 'PC (Windows)',
       releaseDate: '2026-01-02',
@@ -55,6 +55,48 @@ describe('FreeToGame API client', () => {
         signal: expect.any(AbortSignal),
       }),
     );
+  });
+
+  it('keeps five games, excludes Roblox and uses the local French descriptions', async () => {
+    const expectedSelection = [
+      {
+        title: 'World of Tanks: HEAT',
+        shortDescription: 'Jeu de combat de véhicules en free-to-play proposant des affrontements rapides en équipe.',
+      },
+      {
+        title: 'Where Winds Meet',
+        shortDescription: 'Jeu d’action-aventure en monde ouvert inspiré de la Chine ancienne.',
+      },
+      {
+        title: 'Neverness to Everness',
+        shortDescription: 'RPG en monde ouvert mêlant exploration urbaine, action et éléments surnaturels.',
+      },
+      {
+        title: 'Battlefield REDSEC',
+        shortDescription: 'Jeu de tir multijoueur proposant des affrontements à grande échelle.',
+      },
+      {
+        title: 'PUBG: BATTLEGROUNDS',
+        shortDescription: 'Battle royale multijoueur où les joueurs s’affrontent jusqu’au dernier survivant.',
+      },
+    ];
+    const apiPayload = [
+      { ...validGame, id: 1, title: 'Roblox' },
+      ...expectedSelection.map(({ title }, index) => ({
+        ...validGame,
+        id: index + 2,
+        title,
+      })),
+      { ...validGame, id: 7, title: 'Unexpected sixth game' },
+    ];
+    vi.mocked(fetch).mockResolvedValue(responseWith(apiPayload));
+
+    const games = await fetchFreeToGameDiscoveries();
+
+    expect(games).toHaveLength(5);
+    expect(games).not.toEqual(expect.arrayContaining([expect.objectContaining({ title: 'Roblox' })]));
+    expect(games.map(({ title, shortDescription }) => ({ title, shortDescription })))
+      .toEqual(expectedSelection);
   });
 
   it('ignores malformed games and external URLs instead of trusting the payload', async () => {
