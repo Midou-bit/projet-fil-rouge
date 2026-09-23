@@ -82,10 +82,7 @@ export default function Games() {
             Aucune découverte n’est disponible pour le moment.
           </p>
         ) : (
-          <div
-            className="grid"
-            style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', marginTop: '1rem' }}
-          >
+          <div className="grid free-to-play-grid">
             {discoveries.map((game) => (
               <article key={game.id} className="card" style={{ display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
                 <div style={{ position: 'relative', aspectRatio: '16/9', background: 'var(--bg)' }}>
@@ -120,7 +117,7 @@ export default function Games() {
         )}
       </section>
 
-      <div className="surface row wrap" style={{ padding: '1rem', gap: '1rem', alignItems: 'end' }}>
+      <div className="surface row wrap games-filters" style={{ padding: '1rem', gap: '1rem', alignItems: 'end' }}>
         <div style={{ flex: '1 1 240px' }}>
           <label htmlFor="games-search">Recherche</label>
           <input id="games-search" placeholder="Titre ou genre…" value={search} onChange={(e) => setSearch(e.target.value)} />

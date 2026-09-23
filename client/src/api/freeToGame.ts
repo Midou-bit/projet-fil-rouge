@@ -2,8 +2,16 @@ const FREE_TO_GAME_ENDPOINT =
   'https://www.freetogame.com/api/games?platform=pc&sort-by=popularity';
 
 const REQUEST_TIMEOUT_MS = 8_000;
-const MAX_GAMES = 6;
+const MAX_GAMES = 5;
 const FREE_TO_GAME_HOST = 'www.freetogame.com';
+
+const FRENCH_DESCRIPTIONS: Readonly<Record<string, string>> = {
+  'world of tanks: heat': 'Jeu de combat de véhicules en free-to-play proposant des affrontements rapides en équipe.',
+  'where winds meet': 'Jeu d’action-aventure en monde ouvert inspiré de la Chine ancienne.',
+  'neverness to everness': 'RPG en monde ouvert mêlant exploration urbaine, action et éléments surnaturels.',
+  'battlefield redsec': 'Jeu de tir multijoueur proposant des affrontements à grande échelle.',
+  'pubg: battlegrounds': 'Battle royale multijoueur où les joueurs s’affrontent jusqu’au dernier survivant.',
+};
 
 export interface FreeToGameDiscovery {
   id: number;
@@ -33,6 +41,15 @@ function readFreeToGameUrl(value: unknown): string | undefined {
   }
 }
 
+function getFrenchDescription(title: string, genre: string): string {
+  const localDescription = FRENCH_DESCRIPTIONS[title.toLowerCase()];
+
+  if (localDescription) return localDescription;
+  return genre
+    ? `Jeu gratuit de type ${genre} disponible sur PC.`
+    : 'Jeu gratuit disponible sur PC.';
+}
+
 function parseGame(value: unknown): FreeToGameDiscovery | null {
   if (!value || typeof value !== 'object') return null;
 
@@ -41,6 +58,7 @@ function parseGame(value: unknown): FreeToGameDiscovery | null {
     ? game.id
     : null;
   const title = readText(game.title, 120);
+  const genre = readText(game.genre, 60);
 
   if (id === null || !title) return null;
 
@@ -48,8 +66,8 @@ function parseGame(value: unknown): FreeToGameDiscovery | null {
     id,
     title,
     thumbnail: readFreeToGameUrl(game.thumbnail),
-    shortDescription: readText(game.short_description, 280),
-    genre: readText(game.genre, 60),
+    shortDescription: getFrenchDescription(title, genre),
+    genre,
     platform: readText(game.platform, 80),
     releaseDate: readText(game.release_date, 10) || undefined,
     profileUrl: readFreeToGameUrl(game.freetogame_profile_url),
@@ -64,6 +82,7 @@ function parseGames(payload: unknown): FreeToGameDiscovery[] {
   return payload
     .map(parseGame)
     .filter((game): game is FreeToGameDiscovery => game !== null)
+    .filter((game) => game.title.toLowerCase() !== 'roblox')
     .slice(0, MAX_GAMES);
 }
 
