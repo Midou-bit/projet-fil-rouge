@@ -1,5 +1,6 @@
 # Configuration de build Netlify pour le front FrameForge.
-# Netlify lit ce fichier automatiquement : aucun réglage à saisir dans l'interface.
+# Netlify lit ce fichier automatiquement ; seule une variable optionnelle documentée
+# ci-dessous doit être ajoutée dans l'interface pour activer GoatCounter.
 # (Les règles de redirection restent dans client/public/_redirects.)
 
 [build]
@@ -9,10 +10,10 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  # Mesure d'audience GoatCounter optionnelle. Renseigner le code de site pour
-  # l'activer, par exemple VITE_GOATCOUNTER_CODE = "frameforge". Absente ou vide, aucun
-  # script de suivi n'est chargé et la bannière cookies n'a rien à activer.
-  VITE_GOATCOUNTER_CODE = ""
+  # Mesure d'audience GoatCounter optionnelle : définir VITE_GOATCOUNTER_CODE dans
+  # l'interface Netlify (scope Builds), jamais avec une fausse valeur dans ce fichier.
+  # Absente, aucun script de suivi n'est chargé. Une valeur déclarée ici écraserait
+  # celle configurée dans l'interface Netlify.
 
 # Défense en profondeur appliquée par Netlify à l'interface et aux routes de la SPA.
 # La CSP autorise uniquement les tiers effectivement utilisés : polices Google, images du
